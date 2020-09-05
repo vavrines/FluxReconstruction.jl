@@ -332,11 +332,11 @@ version = "0.21.0"
 
 [[Kinetic]]
 deps = ["Conda", "Dates", "FFTW", "FastGaussQuadrature", "FileIO", "JLD2", "LinearAlgebra", "OffsetArrays", "OrdinaryDiffEq", "Plots", "PyCall", "SpecialFunctions", "Test"]
-git-tree-sha1 = "ea14384a4d9182151125ea7927bed086d39d9c4a"
+git-tree-sha1 = "0189069d2acc7bbd47cec12004f8e20e66fcdcec"
 repo-rev = "master"
 repo-url = "https://github.com/vavrines/Kinetic.jl.git"
 uuid = "82403725-3cee-4f7c-b214-1ce71af4a797"
-version = "0.3.1"
+version = "0.4.0"
 
 [[LAME_jll]]
 deps = ["Libdl", "Pkg"]
