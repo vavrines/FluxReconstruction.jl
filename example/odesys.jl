@@ -1,4 +1,4 @@
-using Kinetic, FR, OrdinaryDiffEq
+using KitBase, FluxRC, OrdinaryDiffEq
 
 begin
     x0 = -1

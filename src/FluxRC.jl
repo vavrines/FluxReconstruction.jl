@@ -1,8 +1,8 @@
-module FR
+module FluxRC
 
 using GSL
 using FastGaussQuadrature
-using Kinetic
+using KitBase
 using OffsetArrays
 
 export legendre_point, lagrange_point, ∂legendre, ∂radau, ∂lagrange
@@ -12,4 +12,4 @@ include("data.jl")
 include("poly.jl")
 include("geo.jl")
 
-end # module
+end

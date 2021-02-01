@@ -1,4 +1,4 @@
-using Kinetic, FR
+using KitBase, FluxRC
 
 x0 = -1
 x1 = 1
