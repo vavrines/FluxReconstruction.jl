@@ -1,23 +1,23 @@
-using KitBase, FluxRC, OrdinaryDiffEq, Plots
+using KitBase, OrdinaryDiffEq, Plots, LinearAlgebra
+import FluxRC
 using Logging: global_logger
 using TerminalLoggers: TerminalLogger
 global_logger(TerminalLogger())
 
 begin
-    x0 = -1
+    x0 = 0
     x1 = 1
     nx = 100
     nface = nx + 1
     dx = (x1 - x0) / nx
     deg = 2 # polynomial degree
     nsp = deg + 1
-    u0 = -5
-    u1 = 5
+    u0 = -6
+    u1 = 6
     nu = 28
-    cfl = 0.1
+    cfl = 0.3
     dt = cfl * dx
     t = 0.0
-    a = 1.0
 end
 
 pspace = FluxRC.FRPSpace1D(x0, x1, nx, deg)
@@ -34,13 +34,12 @@ begin
     dgl, dgr = FluxRC.∂radau(deg, xGauss)
 end
 
-u = zeros(nx, nsp)
+w = zeros(nx, 3, nsp)
 f = zeros(nx, nu, nsp)
 for i = 1:nx, ppp1 = 1:nsp
-    #u[i, ppp1] = exp(-20.0 * pspace.xp[i, ppp1]^2)
-    u[i, ppp1] = 1.0 - sin(π * pspace.xp[i, ppp1])
-    prim = conserve_prim(u[i, ppp1], a)
-    f[i, :, ppp1] .= maxwellian(vspace.u, prim)
+    ρ = 1.0 + 0.1 * sin(2.0 * π * pspace.xp[i, ppp1])
+    w[i, :, ppp1] .= prim_conserve([ρ, 1.0, 1.0], 3.0)
+    f[i, :, ppp1] .= maxwellian(vspace.u, [ρ, 1.0, 1.0])
 end
 
 e2f = zeros(Int, nx, 2)
@@ -71,46 +70,42 @@ for i = 1:nface
 end
 
 function mol!(du, u, p, t) # method of lines
-    dx, e2f, f2e, a, velo, weights, δ, deg, ll, lr, lpdm, dgl, dgr = p
+    dx, e2f, f2e, velo, weights, δ, deg, ll, lr, lpdm, dgl, dgr = p
 
     ncell = size(u, 1)
     nu = size(u, 2)
     nsp = size(u, 3)
 
-    ρ = similar(u, ncell, nsp)
     M = similar(u, ncell, nu, nsp)
     for i = 1:ncell, k = 1:nsp
-        #ρ[i, k] = discrete_moments(u[i, :, k], weights)
-        ρ[i, k] = sum(u[i, :, k] .* weights)
-        #prim = conserve_prim(ρ[i, k], a)
-        prim = [ρ[i, k], a, 1.0]
-        #M[i, :, k] .= maxwellian(velo, prim)
-        @. M[i, :, k] = prim[1] * sqrt(prim[3] / π) * exp(-prim[3] * (velo - prim[2])^2)
+        w = moments_conserve(u[i, :, k], velo, weights)
+        prim = conserve_prim(w, 3.0)
+        #prim = [prim[1], 1., prim[3]]
+        M[i, :, k] .= maxwellian(velo, prim)
     end
-    τ = 2.0 * 0.001
+    τ = 0.01
 
     f = similar(u)
     for i = 1:ncell, j = 1:nu, k = 1:nsp
         J = 0.5 * dx[i]
-        f[i, j, k] = velo[j] * u[i, j, k] / J
+        #f[i, j, k] = velo[j] * u[i, j, k] / J
+        f[i, j, k] = velo[j] * M[i, j, k] / J
     end
 
-    u_face = zeros(eltype(u), ncell, nu, 2)
     f_face = zeros(eltype(u), ncell, nu, 2)
     for i = 1:ncell, j = 1:nu, k = 1:nsp
         # right face of element i
-        u_face[i, j, 1] += u[i, j, k] * lr[k]
         f_face[i, j, 1] += f[i, j, k] * lr[k]
 
         # left face of element i
-        u_face[i, j, 2] += u[i, j, k] * ll[k]
         f_face[i, j, 2] += f[i, j, k] * ll[k]
     end
 
     f_interaction = similar(u, nface, nu)
     for i = 1:nface
         @. f_interaction[i, :] =
-            f_face[f2e[i, 1], :, 2] * (1.0 - δ) + f_face[f2e[i, 2], :, 1] * (δ)
+            #f_face[f2e[i, 1], :, 2] * (1.0 - δ) + f_face[f2e[i, 2], :, 1] * δ
+            (f_face[f2e[i, 1], :, 2] + f_face[f2e[i, 2], :, 1]) / 2
     end
 
     rhs1 = zeros(eltype(u), ncell, nu, nsp)
@@ -128,30 +123,47 @@ function mol!(du, u, p, t) # method of lines
     end
 end
 
-tspan = (0.0, 0.5)
-p = (pspace.dx, e2f, f2e, a, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, dgr)
+tspan = (0.0, 0.1)
+p = (pspace.dx, e2f, f2e, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, dgr)
 prob = ODEProblem(mol!, f, tspan, p)
 sol = solve(
     prob,
-    ROCK4(),
+    #ROCK4(),
+    Midpoint(),
     saveat = tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
     adaptive = false,
-    dt = 0.0005,
+    dt = 0.0001,
     progress = true,
     progress_steps = 10,
     progress_name = "frode",
     #autodiff = false,
 )
-prob = remake(prob, u0=sol.u[end], p=p, t=tspan)
 
-#--- post process ---#
-plot(xsp[:, 2], u[:, 2])
+plot(xsp[:, 2], w[:, 1, 2])
 begin
-    ρ = zeros(nx, nsp)
+    prim = zeros(nx, 3, nsp)
     for i = 1:nx, j = 1:nsp
-        ρ[i, j] = moments_conserve(sol.u[end][i, :, j], vspace.u, vspace.weights)[1]
+        _w = moments_conserve(sol.u[end][i, :, j], vspace.u, vspace.weights)
+        prim[i, :, j] .= conserve_prim(_w, 3.0)
     end
-    plot!(xsp[:, 2], ρ[:, 2])    
+    plot!(xsp[:, 2], prim[:, 1:2, 2])
+    plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
+end
+
+df = zero(f)
+for iter = 1:1000
+    mol!(df, f, p, t)
+    f .+= df * 0.0001
+end
+plot(xsp[:, 2], w[:, 1, 2])
+begin
+    prim = zeros(nx, 3, nsp)
+    for i = 1:nx, j = 1:nsp
+        _w = moments_conserve(f[i, :, j], vspace.u, vspace.weights)
+        prim[i, :, j] .= conserve_prim(_w, 3.0)
+    end
+    plot!(xsp[:, 2], prim[:, 1:2, 2])
+    plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
 end
