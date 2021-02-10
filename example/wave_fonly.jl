@@ -1,4 +1,5 @@
-using KitBase, OrdinaryDiffEq, Plots, LinearAlgebra
+using KitBase, KitBase.Plots
+using OrdinaryDiffEq, LinearAlgebra
 import FluxRC
 using Logging: global_logger
 using TerminalLoggers: TerminalLogger
@@ -136,8 +137,8 @@ p = (pspace.dx, e2f, f2e, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, 
 prob = ODEProblem(mol!, f, tspan, p)
 sol = solve(
     prob,
-    #ROCK4(),
-    TRBDF2(),
+    ABDF2(),
+    #TRBDF2(),
     saveat = tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
@@ -159,7 +160,7 @@ begin
     plot!(xsp[:, 2], prim[:, 1:2, 2])
     plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
 end
-
+#=
 prob = remake(prob, u0=sol.u[end], tspan=tspan, p=p)
 sol = solve(
     prob,
@@ -175,3 +176,4 @@ sol = solve(
     progress_name = "frode",
     #autodiff = false,
 )
+=#
