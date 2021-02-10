@@ -37,9 +37,11 @@ end
 w = zeros(nx, 3, nsp)
 f = zeros(nx, nu, nsp)
 for i = 1:nx, ppp1 = 1:nsp
-    ρ = 1.0 + 0.1 * sin(2.0 * π * pspace.xp[i, ppp1])
-    w[i, :, ppp1] .= prim_conserve([ρ, 1.0, 1.0], 3.0)
-    f[i, :, ppp1] .= maxwellian(vspace.u, [ρ, 1.0, 1.0])
+    _ρ = 1.0 + 0.1 * sin(2.0 * π * pspace.xp[i, ppp1])
+    _T = 2 * 0.5 / _ρ
+
+    w[i, :, ppp1] .= prim_conserve([_ρ, 1.0, 1.0/_T], 3.0)
+    f[i, :, ppp1] .= maxwellian(vspace.u, [_ρ, 1.0, 1.0/_T])
 end
 
 e2f = zeros(Int, nx, 2)
@@ -78,12 +80,18 @@ function mol!(du, u, p, t) # method of lines
 
     M = similar(u, ncell, nu, nsp)
     for i = 1:ncell, k = 1:nsp
-        w = moments_conserve(u[i, :, k], velo, weights)
+        #w = moments_conserve(u[i, :, k], velo, weights)
+        w = [
+            sum(@. weights * u[i, :, k]),
+            sum(@. weights * velo * u[i, :, k]),
+            0.5 * sum(@. weights * velo^2 * u[i, :, k])
+        ]
+
         prim = conserve_prim(w, 3.0)
         #prim = [prim[1], 1., prim[3]]
         M[i, :, k] .= maxwellian(velo, prim)
     end
-    τ = 0.01
+    τ = 0.0001
 
     f = similar(u)
     for i = 1:ncell, j = 1:nu, k = 1:nsp
@@ -129,12 +137,12 @@ prob = ODEProblem(mol!, f, tspan, p)
 sol = solve(
     prob,
     #ROCK4(),
-    Midpoint(),
+    TRBDF2(),
     saveat = tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
     adaptive = false,
-    dt = 0.0001,
+    dt = 0.0003,
     progress = true,
     progress_steps = 10,
     progress_name = "frode",
@@ -152,18 +160,18 @@ begin
     plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
 end
 
-df = zero(f)
-for iter = 1:1000
-    mol!(df, f, p, t)
-    f .+= df * 0.0001
-end
-plot(xsp[:, 2], w[:, 1, 2])
-begin
-    prim = zeros(nx, 3, nsp)
-    for i = 1:nx, j = 1:nsp
-        _w = moments_conserve(f[i, :, j], vspace.u, vspace.weights)
-        prim[i, :, j] .= conserve_prim(_w, 3.0)
-    end
-    plot!(xsp[:, 2], prim[:, 1:2, 2])
-    plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
-end
+prob = remake(prob, u0=sol.u[end], tspan=tspan, p=p)
+sol = solve(
+    prob,
+    #ROCK4(),
+    Midpoint(),
+    saveat = tspan[2],
+    #reltol = 1e-8,
+    #abstol = 1e-8,
+    adaptive = false,
+    dt = 0.0001,
+    progress = true,
+    progress_steps = 10,
+    progress_name = "frode",
+    #autodiff = false,
+)

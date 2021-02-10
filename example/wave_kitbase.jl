@@ -96,6 +96,7 @@ end
 
 t = 0.
 dt = timestep(ks, ctr, t)
+"""0.000397"""
 nt = floor(ks.set.maxTime / dt) |> Int
 
 for iter = 1:nt
