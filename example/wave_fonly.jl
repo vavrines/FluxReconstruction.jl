@@ -137,8 +137,10 @@ p = (pspace.dx, e2f, f2e, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, 
 prob = ODEProblem(mol!, f, tspan, p)
 sol = solve(
     prob,
-    ABDF2(),
+    #ABDF2(),
     #TRBDF2(),
+    #Kvaerno3(),
+    KenCarp3(),
     saveat = tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
