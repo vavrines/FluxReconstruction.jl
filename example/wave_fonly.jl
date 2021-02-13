@@ -97,8 +97,8 @@ function mol!(du, u, p, t) # method of lines
     f = similar(u)
     for i = 1:ncell, j = 1:nu, k = 1:nsp
         J = 0.5 * dx[i]
-        #f[i, j, k] = velo[j] * u[i, j, k] / J
-        f[i, j, k] = velo[j] * M[i, j, k] / J
+        f[i, j, k] = velo[j] * u[i, j, k] / J
+        #f[i, j, k] = velo[j] * M[i, j, k] / J
     end
 
     f_face = zeros(eltype(u), ncell, nu, 2)
@@ -113,8 +113,8 @@ function mol!(du, u, p, t) # method of lines
     f_interaction = similar(u, nface, nu)
     for i = 1:nface
         @. f_interaction[i, :] =
-            #f_face[f2e[i, 1], :, 2] * (1.0 - δ) + f_face[f2e[i, 2], :, 1] * δ
-            (f_face[f2e[i, 1], :, 2] + f_face[f2e[i, 2], :, 1]) / 2
+            f_face[f2e[i, 1], :, 2] * (1.0 - δ) + f_face[f2e[i, 2], :, 1] * δ
+            #(f_face[f2e[i, 1], :, 2] + f_face[f2e[i, 2], :, 1]) / 2
     end
 
     rhs1 = zeros(eltype(u), ncell, nu, nsp)
