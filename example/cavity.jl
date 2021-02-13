@@ -59,47 +59,55 @@ function mol!(du, u, p, t) # method of lines
     nsp = size(u, 5)
 
     M = similar(u)
-    for i = 1:nx, j = 1:ny, p = 1:nsp, q = 1:nsp
-        #w = moments_conserve(u[i, j, :, :, p, q], uvelo, vvelo, weights)
-        w = [
-            sum(@. weights * u[i, j, :, :, p, q]),
-            sum(@. weights * uvelo * u[i, j, :, :, p, q]),
-            sum(@. weights * vvelo * u[i, j, :, :, p, q]),
-            0.5 * sum(@. weights * (uvelo^2 + vvelo^2) * u[i, j, :, :, p, q])
-        ]
+    @inbounds Threads.@threads for q = 1:nsp
+        for p = 1:nsp, j = 1:ny, i = 1:nx
+            #w = moments_conserve(u[i, j, :, :, p, q], uvelo, vvelo, weights)
+            w = [
+                sum(@. weights * u[i, j, :, :, p, q]),
+                sum(@. weights * uvelo * u[i, j, :, :, p, q]),
+                sum(@. weights * vvelo * u[i, j, :, :, p, q]),
+                0.5 * sum(@. weights * (uvelo^2 + vvelo^2) * u[i, j, :, :, p, q])
+            ]
 
-        prim = conserve_prim(w, 2.0)
-        M[i, j, :, :, p, q] .= maxwellian(uvelo, vvelo, prim)
+            prim = conserve_prim(w, 2.0)
+            M[i, j, :, :, p, q] .= maxwellian(uvelo, vvelo, prim)
+        end
     end
     τ = 0.05
 
     fx = similar(u)
     fy = similar(u)
-    for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, p = 1:nsp, q = 1:nsp
-        Jx = 0.5 * dx[i, j]
-        Jy = 0.5 * dy[i, j]
-        fx[i, j, k, l, p, q] = uvelo[k, l] * u[i, j, k, l, p, q] / Jx
-        fy[i, j, k, l, p, q] = vvelo[k, l] * u[i, j, k, l, p, q] / Jy
+    @inbounds Threads.@threads for q = 1:nsp
+        for p = 1:nsp, l = 1:nv, k = 1:nu, j = 1:ny, i = 1:nx
+            Jx = 0.5 * dx[i, j]
+            Jy = 0.5 * dy[i, j]
+            fx[i, j, k, l, p, q] = uvelo[k, l] * u[i, j, k, l, p, q] / Jx
+            fy[i, j, k, l, p, q] = vvelo[k, l] * u[i, j, k, l, p, q] / Jy
+        end
     end
 
     fx_face = zeros(eltype(u), nx, ny, nu, nv, nsp, 2)
-    for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, q = 1:nsp, p = 1:nsp
-        fx_face[i, j, k, l, q, 1] += f[i, j, k, l, p, q] * lr[p] # right face of element
-        fx_face[i, j, k, l, q, 2] += f[i, j, k, l, p, q] * ll[p] # left face of element
+    @inbounds Threads.@threads for q = 1:nsp
+        for l = 1:nv, k = 1:nu, j = 1:ny, i = 1:nx, p = 1:nsp
+            fx_face[i, j, k, l, q, 1] += f[i, j, k, l, p, q] * lr[p] # right face of element
+            fx_face[i, j, k, l, q, 2] += f[i, j, k, l, p, q] * ll[p] # left face of element
+        end
     end
     fy_face = zeros(eltype(u), nx, ny, nu, nv, nsp, 2)
-    for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, p = 1:nsp, q = 1:nsp
-        fy_face[i, j, k, l, p, 1] += f[i, j, k, l, p, q] * lr[q] # up face of element
-        fy_face[i, j, k, l, p, 2] += f[i, j, k, l, p, q] * ll[q] # down face of element
+    @inbounds Threads.@threads for p = 1:nsp
+        for l = 1:nv, k = 1:nu, j = 1:ny, i = 1:nx, q = 1:nsp
+            fy_face[i, j, k, l, p, 1] += f[i, j, k, l, p, q] * lr[q] # up face of element
+            fy_face[i, j, k, l, p, 2] += f[i, j, k, l, p, q] * ll[q] # down face of element
+        end
     end
 
     fx_interaction = similar(u, nx+1, ny, nu, nv, nsp)
     fy_interaction = similar(u, nx, ny+1, nu, nv, nsp)
-    for i = 2:nx, j = 1:ny, k = 1:nsp
+    @inbounds for i = 2:nx, j = 1:ny, k = 1:nsp
         @. fx_interaction[i, j, :, :, k] =
             fx_face[i-1, j, :, :, k, 1] * δu + fx_face[i, j, :, :, k, 2] * (1.0 - δu)
     end
-    for i = 1:nx, j = 2:ny, k = 1:nsp
+    @inbounds for i = 1:nx, j = 2:ny, k = 1:nsp
         @. fy_interaction[i, j, :, :, k] =
             fy_face[i, j-1, :, :, k, 1] * δv + fy_face[i, j, :, :, k, 2] * (1.0 - δv)
     end
@@ -109,15 +117,15 @@ function mol!(du, u, p, t) # method of lines
     fy_interaction[:, ny+1, :, :, :] .= 0.
 
     rhs1 = zeros(eltype(u), nx, ny, nu, nv, nsp, nsp)
-    for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, q = 1:nsp, p = 1:nsp, p1 = 1:nsp
+    @inbounds for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, q = 1:nsp, p = 1:nsp, p1 = 1:nsp
         rhs1[i, j, k, l, p, q] += fx[i, j, k, l, p1, q] * lpdm[p, p1]
     end
     rhs2 = zero(rhs1)
-    for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, p = 1:nsp, q = 1:nsp, q1 = 1:nsp
+    @inbounds for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, p = 1:nsp, q = 1:nsp, q1 = 1:nsp
         rhs2[i, j, k, l, p, q] += fy[i, j, k, l, p, q1] * lpdm[q, q1]
     end
 
-    for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, p = 1:nsp, q = 1:nsp
+    @inbounds for i = 1:nx, j = 1:ny, k = 1:nu, l = 1:nv, p = 1:nsp, q = 1:nsp
         du[i, j, k, l, p, q] =
             -(
                 rhs1[i, j, k, l, p, q] + rhs2[i, j, k, l, p, q] +
