@@ -130,14 +130,14 @@ function mol!(du, u, p, t)
         end
     end
 
-    @inbounds Threads.@threads for i = 2:ncell-1
-        for j1 = 1:nu, j2 = 1:nv, j3 = 1:nw, ppp1 = 1:nsp
-            du[i, j1, j2, j3, ppp1] =
+    @inbounds Threads.@threads for ppp1 = 1:nsp
+        for i = 2:ncell-1
+            du[i, :, :, :, ppp1] .=
                 -(
-                    rhs1[i, j1, j2, j3, ppp1] +
-                    (f_interaction[i, j1, j2, j3] - f_face[i, j1, j2, j3, 2]) * dgl[ppp1] +
-                    (f_interaction[i+1, j1, j2, j3] - f_face[i, j1, j2, j3, 1]) * dgr[ppp1]
-                ) + (M[i, j1, j2, j3, ppp1] - u[i, j1, j2, j3, ppp1]) / τ
+                    rhs1[i, :, :, :, ppp1] .+
+                    (f_interaction[i, :, :, :] .- f_face[i, :, :, :, 2]) .* dgl[ppp1] .+
+                    (f_interaction[i+1, :, :, :] - f_face[i, :, :, :, 1]) .* dgr[ppp1]
+                ) .+ (M[i, :, :, :, ppp1] .- u[i, :, :, :, ppp1]) ./ τ
         end
     end
     du[1, :, :, :, :] .= 0.0
