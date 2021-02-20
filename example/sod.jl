@@ -14,11 +14,11 @@ begin
     nsp = deg + 1
     u0 = -5
     u1 = 5
-    nu = 16
-    cfl = 0.08
+    nu = 20
+    cfl = 0.1
     dt = cfl * dx / (u1 + 1.2)
     t = 0.0
-    mu = ref_vhs_vis(1e-4, 1.0, 0.5)
+    mu = ref_vhs_vis(1e-3, 1.0, 0.5)
 end
 
 pspace = FluxRC.FRPSpace1D(x0, x1, nx, deg)
@@ -35,21 +35,23 @@ begin
     dgl, dgr = FluxRC.∂radau(deg, xGauss)
 end
 
-w0 = zeros(nx, 3, nsp)
-h0 = zeros(nx, nu, nsp)
-b0 = zeros(nx, nu, nsp)
-for i = 1:nx, ppp1 = 1:nsp
-    if i <= nx÷2
-        _ρ = 1.0
-        _λ = 0.5
-    else
-        _ρ = 0.125
-        _λ = 0.625
-    end
+begin
+    w0 = zeros(nx, 3, nsp)
+    h0 = zeros(nx, nu, nsp)
+    b0 = zeros(nx, nu, nsp)
+    for i = 1:nx, ppp1 = 1:nsp
+        if i <= nx÷2
+            _ρ = 1.0
+            _λ = 0.5
+        else
+            _ρ = 0.125
+            _λ = 0.625
+        end
 
-    w0[i, :, ppp1] .= prim_conserve([_ρ, 0.0, _λ], 5/3)
-    h0[i, :, ppp1] .= maxwellian(vspace.u, [_ρ, 0.0, _λ])
-    @. b0[i, :, ppp1] = h0[i, :, ppp1] * 2.0 / 2.0 / _λ
+        w0[i, :, ppp1] .= prim_conserve([_ρ, 0.0, _λ], 5/3)
+        h0[i, :, ppp1] .= maxwellian(vspace.u, [_ρ, 0.0, _λ])
+        @. b0[i, :, ppp1] = h0[i, :, ppp1] * 2.0 / 2.0 / _λ
+    end
 end
 
 function mol!(du, u, p, t) # method of lines
@@ -163,9 +165,9 @@ function mol!(du, u, p, t) # method of lines
                 (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81)
             
             # artifical viscosity
-            if abs(rhs1[i, 1, ppp1] / u[i, 1, ppp1]) > dx[i] * 1
-                @. du[i, :, ppp1] += 3e1 * rhs2[i, :, ppp1]
-            end
+            #if abs(rhs1[i, 1, ppp1] / u[i, 1, ppp1]) > dx[i] * 1
+            #    @. du[i, :, ppp1] += 3e1 * rhs2[i, :, ppp1]
+            #end
         end
     end
     du[1, :, :] .= 0.0
@@ -195,9 +197,9 @@ itg = init(
     TRBDF2(),
     #KenCarp3(),
     #KenCarp4(),
-    saveat = tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
+    save_everystep = false,
     adaptive = false,
     dt = dt,
     progress = true,
@@ -235,7 +237,7 @@ begin
 
             w[idx, :] = itg.u[i, 1:3, j]
             #w[idx, :] = u[i, 1:3, j]
-            prim[idx, :] .= conserve_prim([idx, :], 5/3)
+            prim[idx, :] .= conserve_prim(w[idx, :], 5/3)
         end
     end
     plot(x, prim[:, 1:2])
