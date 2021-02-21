@@ -10,7 +10,7 @@ begin
     nx = 50
     nface = nx + 1
     dx = (x1 - x0) / nx
-    deg = 2 # polynomial degree
+    deg = 1 # polynomial degree
     nsp = deg + 1
     u0 = -5
     u1 = 5
@@ -18,7 +18,7 @@ begin
     cfl = 0.1
     dt = cfl * dx / (u1 + 1.2)
     t = 0.0
-    mu = ref_vhs_vis(1e-3, 1.0, 0.5)
+    mu = ref_vhs_vis(1e-4, 1.0, 0.5)
 end
 
 pspace = FluxRC.FRPSpace1D(x0, x1, nx, deg)
@@ -122,13 +122,14 @@ function mol!(du, u, p, t) # method of lines
         for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
             rhs1[i, j, ppp1] += u[i, j, k] * lpdm[ppp1, k]
         end
-
+        
         for j = 1:n2, ppp1 = 1:nsp
             rhs1[i, j, ppp1] += 
                 (u_interaction[i, j] - u_face[i, j, 2]) * dgl[ppp1] +
                 (u_interaction[i+1, j] - u_face[i, j, 1]) * dgr[ppp1]
         end
     end
+
     rhs2 = zeros(eltype(u), ncell, n2, nsp)
     @inbounds Threads.@threads for i = 1:ncell
         for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
@@ -163,13 +164,18 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
                 (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81)
-            
-            # artifical viscosity
-            #if abs(rhs1[i, 1, ppp1] / u[i, 1, ppp1]) > dx[i] * 1
-            #    @. du[i, :, ppp1] += 3e1 * rhs2[i, :, ppp1]
-            #end
         end
     end
+
+    @inbounds Threads.@threads for i = 2:ncell-1
+    #@inbounds Threads.@threads for i = ncell÷2+1:ncell-1
+        for ppp1 = 1:nsp
+            if true#abs(rhs1[i, 1, ppp1] / u[i, 1, ppp1]) > dx[i] * 1.
+                @. du[i, :, ppp1] += exp(10*rhs1[i, 3, ppp1]/ u[i, 1, ppp1]) * rhs2[i, :, ppp1]
+            end
+        end
+    end
+
     du[1, :, :] .= 0.0
     du[ncell, :, :] .= 0.0
 end
@@ -208,7 +214,7 @@ itg = init(
     #autodiff = false,
 )
 
-@showprogress for iter = 1:nt÷4
+@showprogress for iter = 1:nt÷2
     step!(itg)
     itg.u[1,:,:] .= itg.u[2,:,:]
     itg.u[nx,:,:] .= itg.u[nx-1,:,:]
