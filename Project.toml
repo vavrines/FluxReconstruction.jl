@@ -9,6 +9,7 @@ GSL = "92c85e6c-cbff-5e0c-80f7-495c94daaecd"
 KitBase = "86eed249-3a28-466f-8d3a-596821e1af9a"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 TerminalLoggers = "5d786b92-1e48-4d6f-9151-6b4477ca9bed"
 
 [compat]

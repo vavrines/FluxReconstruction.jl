@@ -18,7 +18,8 @@ begin
     cfl = 0.1
     dt = cfl * dx / (u1 + 1.2)
     t = 0.0
-    mu = ref_vhs_vis(1e-4, 1.0, 0.5)
+    knudsen = 1e-4
+    mu = ref_vhs_vis(knudsen, 1.0, 0.5)
 end
 
 pspace = FluxRC.FRPSpace1D(x0, x1, nx, deg)
@@ -148,43 +149,12 @@ function mol!(du, u, p, t) # method of lines
         for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
             ∇u[i, j, ppp1] += u[i, j, k] * lpdm[ppp1, k]
         end
-        
+        #=
         for j = 1:n2, ppp1 = 1:nsp
             ∇u[i, j, ppp1] += 
                 (u_interaction[i, j] - u_face[i, j, 2]) * dgl[ppp1] +
                 (u_interaction[i+1, j] - u_face[i, j, 1]) * dgr[ppp1]
-        end
-    end
-
-    ∇u_face = zeros(eltype(u), ncell, n2, 2)
-    @inbounds Threads.@threads for i = 1:ncell
-        for j = 1:n2, k = 1:nsp
-            ∇u_face[i, j, 1] += ∇u[i, j, k] * lr[k]
-            ∇u_face[i, j, 2] += ∇u[i, j, k] * ll[k]
-        end
-    end
-
-    ∇u_interaction = zeros(eltype(u), nface, n2)
-    @inbounds Threads.@threads for i = 2:nface-1
-        @. ∇u_interaction[i, 4:nu+3] = ∇u_face[i, 4:nu+3, 2] * (1.0 - δ) + ∇u_face[i-1, 4:nu+3, 1] * δ
-        @. ∇u_interaction[i, nu+4:end] = ∇u_face[i, nu+4:end, 2] * (1.0 - δ) + ∇u_face[i-1, nu+4:end, 1] * δ
-
-        ∇u_interaction[i, 1] = sum(weights .* ∇u_interaction[i, 4:nu+3])
-        ∇u_interaction[i, 2] = sum(weights .* velo .* ∇u_interaction[i, 4:nu+3])
-        ∇u_interaction[i, 3] = 0.5 * (sum(weights .* velo .^ 2 .* ∇u_interaction[i, 4:nu+3]) + sum(weights .* ∇u_interaction[i, nu+4:end]))
-   end
-    
-    ∇2u = zeros(eltype(u), ncell, n2, nsp)
-    @inbounds Threads.@threads for i = 1:ncell
-        for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
-            ∇2u[i, j, ppp1] += ∇u[i, j, k] * lpdm[ppp1, k]
-        end
-        
-        for j = 1:n2, ppp1 = 1:nsp
-            ∇2u[i, j, ppp1] += 
-                (∇u_interaction[i, j] - ∇u_face[i, j, 2]) * dgl[ppp1] +
-                (∇u_interaction[i+1, j] - ∇u_face[i, j, 1]) * dgr[ppp1]
-        end
+        end=#
     end
 
     rhs = zeros(eltype(u), ncell, n2, nsp)
@@ -211,7 +181,8 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 1000. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 600. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 500. * (abs(∇u[i, 3, ppp1]) * dx[i] / mean(u[i, 3, :]) * dt))
 
             j = nu+4:n2
             du[i, j, ppp1] .=
@@ -220,20 +191,24 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 1000. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 600. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 500. * (abs(∇u[i, 3, ppp1]) * dx[i] / mean(u[i, 3, :]) * dt))
         end
     end
-    #=
-    @inbounds Threads.@threads for i = 2:ncell-1
-    #@inbounds Threads.@threads for i = ncell÷2+1:ncell-1
-        for ppp1 = 1:nsp
-            if abs(∇u[i, 3, ppp1] / u[i, 3, ppp1]) > dx[i] * 10.
-                @. du[i, :, ppp1] += 5 * ∇2u[i, :, ppp1]
-                #@. du[i, :, ppp1] += exp(10*∇u[i, 3, ppp1]/ u[i, 1, ppp1]) * ∇2u[i, :, ppp1]
-            end
-        end
-    end
-    =#
+
+    #=@show vhs_collision_time(conserve_prim(u[25, 1:3, 1], 5/3), mu, 0.81)
+    @show vhs_collision_time(conserve_prim(u[25, 1:3, 2], 5/3), mu, 0.81)
+    @show vhs_collision_time(conserve_prim(u[25, 1:3, 3], 5/3), mu, 0.81)
+    @show 20. * (abs(∇p[25, 1]) * dx[25] / mean(pressure[25, :]) * dt)
+    @show 20. * (abs(∇p[25, 2]) * dx[25] / mean(pressure[25, :]) * dt)
+    @show 20. * (abs(∇p[25, 3]) * dx[25] / mean(pressure[25, :]) * dt)
+    @show vhs_collision_time(conserve_prim(u[26, 1:3, 1], 5/3), mu, 0.81)
+    @show vhs_collision_time(conserve_prim(u[26, 1:3, 2], 5/3), mu, 0.81)
+    @show vhs_collision_time(conserve_prim(u[26, 1:3, 3], 5/3), mu, 0.81)
+    @show 20. * (abs(∇p[26, 1]) * dx[26] / mean(pressure[26, :]) * dt)
+    @show 20. * (abs(∇p[26, 2]) * dx[26] / mean(pressure[26, :]) * dt)
+    @show 20. * (abs(∇p[26, 3]) * dx[26] / mean(pressure[26, :]) * dt)=#
+
     du[1, :, :] .= 0.0
     du[ncell, :, :] .= 0.0
 end
@@ -271,26 +246,17 @@ itg = init(
     progress_name = "frode",
     #autodiff = false,
 )
-
+#step!(itg)
 @showprogress for iter = 1:nt
     step!(itg)
     #itg.u[1,:,:] .= itg.u[2,:,:]
     #itg.u[nx,:,:] .= itg.u[nx-1,:,:]
 end
-#=
-u = deepcopy(u0)
-du = zero(u)
-@showprogress for iter = 1:nt
-    mol!(du, u, p, t)
-    u .+= du * dt
-    u[1,:,:] .= u[2,:,:]
-    u[nx,:,:] .= u[nx-1,:,:]
-end
-=#
+
 begin
     x = zeros(nx * nsp)
     w = zeros(nx * nsp, 3)
-    prim = zeros(nx * nsp, 3)
+    prim = zeros(nx * nsp, 4)
     for i = 1:nx
         idx0 = (i - 1) * nsp
         idx = idx0+1:idx0+nsp
@@ -301,43 +267,11 @@ begin
 
             w[idx, :] = itg.u[i, 1:3, j]
             #w[idx, :] = u[i, 1:3, j]
-            prim[idx, :] .= conserve_prim(w[idx, :], 5/3)
+            prim[idx, 1:3] .= conserve_prim(w[idx, :], 5/3)
+            prim[idx, 4] = 0.5 * prim[idx, 1] / prim[idx, 3]
         end
     end
     plot(x, prim[:, 1:2])
     plot!(x, 1 ./ prim[:, 3])
+    plot!(x, prim[:, 4])
 end
-
-#=
-prob = ODEProblem(mol!, u0, tspan, p)
-sol = solve(
-    prob,
-    Midpoint(),
-    #TRBDF2(),
-    #KenCarp3(),
-    #KenCarp4(),
-    saveat = tspan[2],
-    #reltol = 1e-8,
-    #abstol = 1e-8,
-    adaptive = false,
-    dt = dt/20,
-    progress = true,
-    progress_steps = 10,
-    progress_name = "frode",
-    #autodiff = false,
-)
-
-prim0 = zeros(nx, 3, nsp)
-prim = zeros(nx, 3, nsp)
-for i = 1:nx, j = 1:nsp
-    _w0 = w[i, :, j]
-    _w = sol.u[end][i, 1:3, j]
-
-    prim0[i, :, j] .= conserve_prim(_w0, 5/3)
-    prim[i, :, j] .= conserve_prim(_w, 5/3)
-end
-
-scatter(xsp[:, 2], prim[:, 1, 2])
-plot!(xsp[:, 2], prim[:, 2, 2])
-plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
-=#
