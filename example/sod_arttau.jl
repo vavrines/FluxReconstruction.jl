@@ -149,12 +149,12 @@ function mol!(du, u, p, t) # method of lines
         for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
             ∇u[i, j, ppp1] += u[i, j, k] * lpdm[ppp1, k]
         end
-        #=
+        
         for j = 1:n2, ppp1 = 1:nsp
             ∇u[i, j, ppp1] += 
                 (u_interaction[i, j] - u_face[i, j, 2]) * dgl[ppp1] +
                 (u_interaction[i+1, j] - u_face[i, j, 1]) * dgr[ppp1]
-        end=#
+        end
     end
 
     rhs = zeros(eltype(u), ncell, n2, nsp)
@@ -181,7 +181,7 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 600. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 1000. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
                 #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 500. * (abs(∇u[i, 3, ppp1]) * dx[i] / mean(u[i, 3, :]) * dt))
 
             j = nu+4:n2
@@ -191,7 +191,7 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 600. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 1000. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
                 #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 500. * (abs(∇u[i, 3, ppp1]) * dx[i] / mean(u[i, 3, :]) * dt))
         end
     end
@@ -199,15 +199,20 @@ function mol!(du, u, p, t) # method of lines
     #=@show vhs_collision_time(conserve_prim(u[25, 1:3, 1], 5/3), mu, 0.81)
     @show vhs_collision_time(conserve_prim(u[25, 1:3, 2], 5/3), mu, 0.81)
     @show vhs_collision_time(conserve_prim(u[25, 1:3, 3], 5/3), mu, 0.81)
-    @show 20. * (abs(∇p[25, 1]) * dx[25] / mean(pressure[25, :]) * dt)
-    @show 20. * (abs(∇p[25, 2]) * dx[25] / mean(pressure[25, :]) * dt)
-    @show 20. * (abs(∇p[25, 3]) * dx[25] / mean(pressure[25, :]) * dt)
+    @show 500. * (abs(∇p[25, 1]) * dx[25] / mean(pressure[25, :]) * dt)
+    @show 500. * (abs(∇p[25, 2]) * dx[25] / mean(pressure[25, :]) * dt)
+    @show 500. * (abs(∇p[25, 3]) * dx[25] / mean(pressure[25, :]) * dt)
     @show vhs_collision_time(conserve_prim(u[26, 1:3, 1], 5/3), mu, 0.81)
     @show vhs_collision_time(conserve_prim(u[26, 1:3, 2], 5/3), mu, 0.81)
     @show vhs_collision_time(conserve_prim(u[26, 1:3, 3], 5/3), mu, 0.81)
-    @show 20. * (abs(∇p[26, 1]) * dx[26] / mean(pressure[26, :]) * dt)
-    @show 20. * (abs(∇p[26, 2]) * dx[26] / mean(pressure[26, :]) * dt)
-    @show 20. * (abs(∇p[26, 3]) * dx[26] / mean(pressure[26, :]) * dt)=#
+    @show 500. * (abs(∇p[26, 1]) * dx[26] / mean(pressure[26, :]) * dt)
+    @show 500. * (abs(∇p[26, 2]) * dx[26] / mean(pressure[26, :]) * dt)
+    @show 500. * (abs(∇p[26, 3]) * dx[26] / mean(pressure[26, :]) * dt)=#
+
+    #=@show vhs_collision_time(conserve_prim(u[25, 1:3, 3], 5/3), mu, 0.81)
+    @show vhs_collision_time(conserve_prim(u[26, 1:3, 1], 5/3), mu, 0.81)
+    @show abs(∇p[25, 3]) * dt * dx[25] / pressure[25, 3]
+    @show abs(∇p[26, 1]) * dt * dx[26] / pressure[26, 1]=#
 
     du[1, :, :] .= 0.0
     du[ncell, :, :] .= 0.0
@@ -224,7 +229,7 @@ for i in axes(u0, 1), k in axes(u0, 3)
     u0[i, j, k] .= b0[i, :, k]
 end
 
-tspan = (0.0, 0.12)
+tspan = (0.0, 0.14)
 nt = floor(tspan[2] / dt) |> Int
 p = (pspace.dx, vspace.u, vspace.weights, δ, mu, ll, lr, lpdm, dgl, dgr)
 
@@ -271,7 +276,7 @@ begin
             prim[idx, 4] = 0.5 * prim[idx, 1] / prim[idx, 3]
         end
     end
-    plot(x, prim[:, 1:2])
-    plot!(x, 1 ./ prim[:, 3])
-    plot!(x, prim[:, 4])
+    scatter(x[1:2:end], prim[1:2:end, 1:2])
+    #plot!(x, 1 ./ prim[:, 3])
+    scatter!(x, prim[:, 4])
 end
