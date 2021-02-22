@@ -19,10 +19,10 @@ left  |   rarefaction  |        post       |  right
 
 """
 
-using DifferentialEquations, Plots
+using DifferentialEquations, Plots, JLD2
 
 begin
-    γ = 5 / 3
+    γ = 1.4#5 / 3
     m = sqrt((γ - 1.0) / (γ + 1.0))
     ρl = 1.0
     pl = 1.0
@@ -43,7 +43,7 @@ function eq(out, du, u, p, t)
         (ρr * (u[1] + m^2 * pr))^(-0.5)
 end
 
-u0 = [0.1]
+u0 = [0.25]
 du0 = [0.0]
 tspan = (0.0, 0.001)
 p = (γ, m, ρr, pr)
@@ -91,3 +91,6 @@ for i in eachindex(x)
 end
 
 plot(x, sol)
+
+cd(@__DIR__)
+@save "exact_sod.jld2" x sol

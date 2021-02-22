@@ -1,8 +1,13 @@
-using KitBase, OrdinaryDiffEq, Plots, LinearAlgebra, KitBase.ProgressMeter, Statistics
+using KitBase, OrdinaryDiffEq, Plots, LinearAlgebra, KitBase.ProgressMeter, Statistics, JLD2
 import FluxRC
 using Logging: global_logger
 using TerminalLoggers: TerminalLogger
 global_logger(TerminalLogger())
+
+cd(@__DIR__)
+@load "numerical_sod.jld2" x sol
+x_ref = deepcopy(x)
+sol_ref = deepcopy(sol)
 
 begin
     x0 = 0
@@ -18,7 +23,7 @@ begin
     cfl = 0.1
     dt = cfl * dx / (u1 + 1.2)
     t = 0.0
-    knudsen = 1e-4
+    knudsen = 2e-4
     mu = ref_vhs_vis(knudsen, 1.0, 0.5)
 end
 
@@ -181,8 +186,9 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 1000. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
-                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 500. * (abs(∇u[i, 3, ppp1]) * dx[i] / mean(u[i, 3, :]) * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 100. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 300. * (abs(∇p[i, ppp1]) * dx[i] / pressure[i, ppp1] * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 50. * (abs(∇u[i, 3, ppp1]) * dx[i] * dt))
 
             j = nu+4:n2
             du[i, j, ppp1] .=
@@ -191,8 +197,9 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 1000. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
-                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 500. * (abs(∇u[i, 3, ppp1]) * dx[i] / mean(u[i, 3, :]) * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 100. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 300. * (abs(∇p[i, ppp1]) * dx[i] / pressure[i, ppp1] * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 50. * (abs(∇u[i, 3, ppp1]) * dx[i] * dt))
         end
     end
 
@@ -229,7 +236,7 @@ for i in axes(u0, 1), k in axes(u0, 3)
     u0[i, j, k] .= b0[i, :, k]
 end
 
-tspan = (0.0, 0.14)
+tspan = (0.0, 0.15)
 nt = floor(tspan[2] / dt) |> Int
 p = (pspace.dx, vspace.u, vspace.weights, δ, mu, ll, lr, lpdm, dgl, dgr)
 
@@ -276,7 +283,10 @@ begin
             prim[idx, 4] = 0.5 * prim[idx, 1] / prim[idx, 3]
         end
     end
-    scatter(x[1:2:end], prim[1:2:end, 1:2])
+    plot(x[1:2:end], prim[1:2:end, 1:2])
+    plot!(x[1:2:end], prim[1:2:end, 4])
+    plot!(x_ref, sol_ref[:, 1:3])
+    
     #plot!(x, 1 ./ prim[:, 3])
-    scatter!(x, prim[:, 4])
+    #scatter!(x, prim[:, 4])
 end
