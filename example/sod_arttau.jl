@@ -23,7 +23,7 @@ begin
     cfl = 0.1
     dt = cfl * dx / (u1 + 1.2)
     t = 0.0
-    knudsen = 2e-4
+    knudsen = 1e-4
     mu = ref_vhs_vis(knudsen, 1.0, 0.5)
 end
 
@@ -61,7 +61,7 @@ begin
 end
 
 function mol!(du, u, p, t) # method of lines
-    dx, velo, weights, δ, muref, ll, lr, lpdm, dgl, dgr = p
+    dx, velo, weights, δ, knudsen, muref, ll, lr, lpdm, dgl, dgr = p
 
     ncell = length(dx)
     nu = length(velo)
@@ -148,7 +148,7 @@ function mol!(du, u, p, t) # method of lines
                 (p_interaction[i+1] - p_face[i, 1]) * dgr[ppp1]
         end
     end
-
+#=
     ∇u = zeros(eltype(u), ncell, n2, nsp)
     @inbounds Threads.@threads for i = 1:ncell
         for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
@@ -161,7 +161,7 @@ function mol!(du, u, p, t) # method of lines
                 (u_interaction[i+1, j] - u_face[i, j, 1]) * dgr[ppp1]
         end
     end
-
+=#
     rhs = zeros(eltype(u), ncell, n2, nsp)
     @inbounds Threads.@threads for i = 1:ncell
         for j = 1:n2, ppp1 = 1:nsp, k = 1:nsp
@@ -179,6 +179,10 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i+1, j] - f_face[i, j, 1]) * dgr[ppp1]
                 )
 
+            #fac = dx[i] / (knudsen / u[i, 1, ppp1] )
+            fac = 3.0 * dx[i] / knudsen
+            #@show fac
+
             j = 4:nu+3
             du[i, j, ppp1] .=
                 -(
@@ -186,9 +190,9 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 100. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 300. * (abs(∇p[i, ppp1]) * dx[i] / pressure[i, ppp1] * dt))
-                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 50. * (abs(∇u[i, 3, ppp1]) * dx[i] * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ fac * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ fac * (abs(∇p[i, ppp1]) * dx[i] / pressure[i, ppp1] * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ fac * (abs(∇u[i, 2, ppp1] / u[i, 2, ppp1]) * dx[i] * dt))
 
             j = nu+4:n2
             du[i, j, ppp1] .=
@@ -197,9 +201,9 @@ function mol!(du, u, p, t) # method of lines
                     (f_interaction[i, j] .- f_face[i, j, 2]) .* dgl[ppp1] .+
                     (f_interaction[i+1, j] .- f_face[i, j, 1]) .* dgr[ppp1]
                 ) .+ 
-                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 100. * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
-                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 300. * (abs(∇p[i, ppp1]) * dx[i] / pressure[i, ppp1] * dt))
-                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ 50. * (abs(∇u[i, 3, ppp1]) * dx[i] * dt))
+                (maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ fac * (abs(∇p[i, ppp1]) * dx[i] / mean(pressure[i, :]) * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ fac * (abs(∇p[i, ppp1]) * dx[i] / pressure[i, ppp1] * dt))
+                #(maxwellian(velo, conserve_prim(u[i, 1:3, ppp1], 5/3)) ./ conserve_prim(u[i, 1:3, ppp1], 5/3)[end] .- u[i, j, ppp1]) ./ (vhs_collision_time(conserve_prim(u[i, 1:3, ppp1], 5/3), mu, 0.81) .+ fac * (abs(∇u[i, 2, ppp1] / u[i, 2, ppp1]) * dx[i] * dt))
         end
     end
 
@@ -238,7 +242,7 @@ end
 
 tspan = (0.0, 0.15)
 nt = floor(tspan[2] / dt) |> Int
-p = (pspace.dx, vspace.u, vspace.weights, δ, mu, ll, lr, lpdm, dgl, dgr)
+p = (pspace.dx, vspace.u, vspace.weights, δ, knudsen, mu, ll, lr, lpdm, dgl, dgr)
 
 prob = ODEProblem(mol!, u0, tspan, p)
 itg = init(
@@ -259,7 +263,7 @@ itg = init(
     #autodiff = false,
 )
 #step!(itg)
-@showprogress for iter = 1:nt
+for iter = 1:nt
     step!(itg)
     #itg.u[1,:,:] .= itg.u[2,:,:]
     #itg.u[nx,:,:] .= itg.u[nx-1,:,:]
@@ -283,8 +287,8 @@ begin
             prim[idx, 4] = 0.5 * prim[idx, 1] / prim[idx, 3]
         end
     end
-    plot(x[1:2:end], prim[1:2:end, 1:2])
-    plot!(x[1:2:end], prim[1:2:end, 4])
+    scatter(x[1:2:end], prim[1:2:end, 1:2])
+    scatter!(x[1:2:end], prim[1:2:end, 4])
     plot!(x_ref, sol_ref[:, 1:3])
     
     #plot!(x, 1 ./ prim[:, 3])
