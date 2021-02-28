@@ -1,7 +1,4 @@
-using OrdinaryDiffEq, KitBase, KitBase.Plots
-using Logging: global_logger
-using TerminalLoggers: TerminalLogger
-global_logger(TerminalLogger())
+using OrdinaryDiffEq, KitBase, KitBase.Plots, ProgressMeter
 import FluxRC
 
 function fboundary!(
@@ -11,7 +8,8 @@ function fboundary!(
     u::T5,
     v::T5,
     ω::T5,
-    rot = 1,
+    len::Real,
+    rot::Real,
 ) where {
     T2<:AbstractArray{<:AbstractFloat,2},
     T3<:Array{<:Real,1},
@@ -26,13 +24,13 @@ function fboundary!(
 
     M = maxwellian(u, v, prim)
     fWall = M .* δ .+ f .* (1.0 .- δ)
-    @. ff = u * fWall
+    @. ff = u * fWall / (0.5 * len)
 
     return nothing
 end
 
 begin
-    x0 = 0
+    x0 = -1
     x1 = 1
     nx = 50
     y0 = 0
@@ -42,15 +40,17 @@ begin
     nyface = ny + 1
     dx = (x1 - x0) / nx
     dy = (y1 - y0) / ny
+    u0 = -6
+    u1 = 6
+    nu = 28
+    v0 = -6
+    v1 = 6
+    nv = 28
+    knudsen = 0.2e1 / √π
+    muref = ref_vhs_vis(knudsen, 1.0, 0.5)
     deg = 2 # polynomial degree
     nsp = deg + 1
-    u0 = -5
-    u1 = 5
-    nu = 28
-    v0 = -5
-    v1 = 5
-    nv = 28
-    cfl = 0.3
+    cfl = 0.2
     dt = cfl * dx / u1
     t = 0.0
 end
@@ -68,15 +68,18 @@ begin
     dgl, dgr = FluxRC.∂radau(deg, xGauss)
 end
 
-w = zeros(nx, ny, 4, nsp, nsp)
-f = zeros(nx, ny, nu, nv, nsp, nsp)
+w0 = zeros(nx, ny, 4, nsp, nsp)
+f0 = zeros(nx, ny, nu, nv, nsp, nsp)
 for i = 1:nx, j = 1:ny, p = 1:nsp, q = 1:nsp
-    w[i, j, :, p, q] .= prim_conserve([1.0, 0.0, 0.0, 1.0], 2.0)
-    f[i, j, :, :, p, q] .= maxwellian(vspace.u, vspace.v, [1.0, 0.0, 1.0])
+    _v = -1.0 + (pspace.x[i] - x0) / (x1 - x0) * 2.0
+    _prim = [1.0, 0.0, _v, 1.0]
+    w0[i, j, :, p, q] .= prim_conserve(_prim, 2.0)
+    f0[i, j, :, :, p, q] .= maxwellian(vspace.u, vspace.v, _prim)
 end
+τ0 = zeros(nx, ny, nsp, nsp)
 
 function mol!(du, u, p, t) # method of lines
-    dx, dy, uvelo, vvelo, weights, δu, δv, deg, ll, lr, lpdm, dgl, dgr = p
+    dx, uvelo, vvelo, weights, δu, muref, τ, ll, lr, lpdm, dgl, dgr = p
 
     nx = size(u, 1)
     ny = size(u, 2)
@@ -97,9 +100,9 @@ function mol!(du, u, p, t) # method of lines
 
             prim = conserve_prim(w, 2.0)
             M[i, j, :, :, p, q] .= maxwellian(uvelo, vvelo, prim)
+            τ[i, j, p, q] = vhs_collision_time(prim, muref, 0.72)
         end
     end
-    τ = 0.05
 
     fx = similar(u)
     @inbounds Threads.@threads for q = 1:nsp
@@ -115,8 +118,8 @@ function mol!(du, u, p, t) # method of lines
         for l = 1:nv, k = 1:nu, j = 1:ny, i = 1:nx, p = 1:nsp
             ux_face[i, j, k, l, q, 1] += u[i, j, k, l, p, q] * lr[p]
             ux_face[i, j, k, l, q, 2] += u[i, j, k, l, p, q] * ll[p]
-            fx_face[i, j, k, l, q, 1] += f[i, j, k, l, p, q] * lr[p]
-            fx_face[i, j, k, l, q, 2] += f[i, j, k, l, p, q] * ll[p]
+            fx_face[i, j, k, l, q, 1] += fx[i, j, k, l, p, q] * lr[p]
+            fx_face[i, j, k, l, q, 2] += fx[i, j, k, l, p, q] * ll[p]
         end
     end
 
@@ -125,14 +128,15 @@ function mol!(du, u, p, t) # method of lines
         @. fx_interaction[i, j, :, :, k] =
             fx_face[i-1, j, :, :, k, 1] * δu + fx_face[i, j, :, :, k, 2] * (1.0 - δu)
     end
-    #fx_interaction[1, :, :, :, :] .= 0.
-    #fx_interaction[nx+1, :, :, :, :] .= 0.
+    # boundary
     @inbounds for i = 1:nsp
         fw1 = @view fx_interaction[1, 1, :, :, i]
-        fboundary!(fw1, [1.0, 0.0, 1.0, 1.0], ux_face[1, 1, :, :, i, 2], uvelo, vvelo, weights, 1.0)
-        
+        fboundary!(fw1, [1.0, 0.0, -1.0, 1.0], ux_face[1, 1, :, :, i, 2], uvelo, vvelo, weights, dx[1, 1], 1.0)
+        #fw1 ./= (0.5 * dx[1, 1])
+
         fw2 = @view fx_interaction[end, 1, :, :, i]
-        fboundary!(fw2, [1.0, 0.0, -1.0, 1.0], ux_face[end, 1, :, :, i, 1], uvelo, vvelo, weights, -1.0)
+        fboundary!(fw2, [1.0, 0.0, 1.0, 1.0], ux_face[end, 1, :, :, i, 1], uvelo, vvelo, weights, dx[end, 1], -1.0)
+        #fw2 ./= (0.5 * dx[end, 1])
     end
 
     rhs1 = zeros(eltype(u), nx, ny, nu, nv, nsp, nsp)
@@ -146,29 +150,42 @@ function mol!(du, u, p, t) # method of lines
                 rhs1[i, j, k, l, p, q] +
                 (fx_interaction[i, j, k, l, q] - fx_face[i, j, k, l, q, 2]) * dgl[p] +
                 (fx_interaction[i+1, j, k, l, q] - fx_face[i, j, k, l, q, 1]) * dgr[p]
-            ) + (M[i, j, k, l, p, q] - u[i, j, k, l, p, q]) / τ
+            ) + (M[i, j, k, l, p, q] - u[i, j, k, l, p, q]) / τ[i, j, p, q]
     end
+    #du[1, :, :, :, :, :] .= 0.
+    #du[nx, :, :, :, :, :] .= 0.
 end
 
 tspan = (0.0, 0.01)
-p = (pspace.dx, pspace.dy, vspace.u, vspace.v, vspace.weights, δu, δv, deg, ll, lr, lpdm, dgl, dgr)
-prob = ODEProblem(mol!, f, tspan, p)
-sol = solve(
+p = (pspace.dx, vspace.u, vspace.v, vspace.weights, δu, muref, τ0, ll, lr, lpdm, dgl, dgr)
+prob = ODEProblem(mol!, f0, tspan, p)
+
+itg = init(
     prob,
-    Midpoint(),
+    Euler(),
     #ABDF2(),
     #TRBDF2(),
-    #Kvaerno3(),
     #KenCarp3(),
-    saveat = tspan[2],
+    #KenCarp4(),
     #reltol = 1e-8,
     #abstol = 1e-8,
+    save_everystep = false,
     adaptive = false,
-    dt = 0.0003,
-    progress = true,
-    progress_steps = 10,
-    progress_name = "frode",
+    dt = dt,
     #autodiff = false,
 )
 
-plot(pspace.xp[:, 1, 2, 2], sol.u[end][:, 1, 14, 14, 2, 2])
+@showprogress for iter = 1:1000#nt
+    step!(itg)
+end
+
+begin
+    _w = zeros(nx, 4)
+    _prim = zero(_w)
+    for i = 1:nx
+        _w[i, :] .= moments_conserve(itg.u[i, 1, :, :, 2, 2], vspace.u, vspace.v, vspace.weights)
+        _prim[i, :] .= conserve_prim(_w[i, :], 2.0)
+    end
+
+    plot(pspace.xp[:, 1, 2, 2], _prim[:, 3])
+end
