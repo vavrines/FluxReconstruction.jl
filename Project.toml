@@ -16,7 +16,7 @@ TerminalLoggers = "5d786b92-1e48-4d6f-9151-6b4477ca9bed"
 [compat]
 FastGaussQuadrature = "0.2, 0.3, 0.4"
 GSL = "^1"
-KitBase = "0.3"
+KitBase = "0.4"
 OffsetArrays = "^1"
 OrdinaryDiffEq = "^5"
 TerminalLoggers = "0.1"
