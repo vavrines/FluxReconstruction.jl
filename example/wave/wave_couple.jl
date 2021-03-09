@@ -1,4 +1,5 @@
 using KitBase, OrdinaryDiffEq, Plots, LinearAlgebra
+using KitBase.PyCall
 import FluxRC
 using Logging: global_logger
 using TerminalLoggers: TerminalLogger
@@ -7,16 +8,16 @@ global_logger(TerminalLogger())
 begin
     x0 = 0
     x1 = 1
-    nx = 50#100
+    nx = 20#100
     nface = nx + 1
     dx = (x1 - x0) / nx
     deg = 2 # polynomial degree
     nsp = deg + 1
     u0 = -5
     u1 = 5
-    nu = 16#28
-    cfl = 0.3
-    dt = cfl * dx / u1
+    nu = 100
+    cfl = 0.1
+    dt = cfl * dx / (u1 + 2.)
     t = 0.0
 end
 
@@ -81,8 +82,14 @@ function mol!(du, u, p, t) # method of lines
     nu = size(pdf, 2)
     nsp = size(pdf, 3)
 
-    τ = 0.0001
-
+    τ = 1e-3
+#=
+    @inbounds Threads.@threads for i = 1:ncell
+        for k = 1:nsp
+            u[i, 4:end, k] .= maxwellian(velo, conserve_prim(u[i, 1:3, k], 3.0))
+        end
+    end
+=#
     f = similar(u)
     @inbounds Threads.@threads for i = 1:ncell
         J = 0.5 * dx[i]
@@ -163,12 +170,13 @@ p = (pspace.dx, e2f, f2e, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, 
 prob = ODEProblem(mol!, u0, tspan, p)
 sol = solve(
     prob,
+    BS3(),
     #TRBDF2(),
-    KenCarp3(),
+    #KenCarp3(),
     #KenCarp4(),
     saveat = tspan[2],
-    #reltol = 1e-8,
-    #abstol = 1e-8,
+    reltol = 1e-10,
+    abstol = 1e-10,
     adaptive = false,
     dt = dt,
     progress = true,
@@ -178,15 +186,43 @@ sol = solve(
 )
 #prob = remake(prob, u0=sol.u[end], p=p, t=tspan)
 
-prim0 = zeros(nx, 3, nsp)
-prim = zeros(nx, 3, nsp)
-for i = 1:nx, j = 1:nsp
-    _w0 = moments_conserve(f[i, :, j], vspace.u, vspace.weights)
-    _w = sol.u[end][i, 1:3, j]
+begin
+    x = zeros(nx * nsp)
+    w = zeros(nx * nsp, 3)
+    prim = zeros(nx * nsp, 3)
+    prim0 = zeros(nx * nsp, 3)
+    for i = 1:nx
+        idx0 = (i - 1) * nsp
+        idx = idx0+1:idx0+nsp
 
-    prim0[i, :, j] .= conserve_prim(_w0, 3.0)
-    prim[i, :, j] .= conserve_prim(_w, 3.0)
+        for j = 1:nsp
+            idx = idx0 + j
+            x[idx] = xsp[i, j]
+
+            w[idx, :] = sol.u[end][i, 1:3, j]
+            prim[idx, :] .= conserve_prim(w[idx, :], 3.0)
+            prim0[idx, :] .= [1.0 + 0.1 * sin(2.0 * π * x[idx]), 1.0, 2 * 0.5 / (1.0 + 0.1 * sin(2.0 * π * x[idx]))]
+        end
+    end
 end
 
-plot(xsp[:, 2], prim0[:, 1, 2])
-plot!(xsp[:, 2], prim[:, 1, 2])
+#FluxRC.L1_error(prim[:, 1], prim0[:, 1], dx) |> println
+#FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
+#FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
+FluxRC.L1_error(prim[:, 1], f_ref(x), dx) |> println
+FluxRC.L2_error(prim[:, 1], f_ref(x), dx) |> println
+FluxRC.L∞_error(prim[:, 1], f_ref(x), dx) |> println
+
+
+plot(x, prim0[:, 1])
+scatter!(x[1:end], prim[1:end, 1])
+
+using JLD2
+cd(@__DIR__)
+@save "tau-3.jld2" x prim
+
+
+x_ref = deepcopy(x)
+sol_ref = deepcopy(prim)
+itp = pyimport("scipy.interpolate")
+f_ref = itp.interp1d(x_ref, sol_ref[:, 1], kind="cubic")

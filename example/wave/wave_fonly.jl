@@ -8,16 +8,16 @@ global_logger(TerminalLogger())
 begin
     x0 = 0
     x1 = 1
-    nx = 100
+    nx = 20
     nface = nx + 1
     dx = (x1 - x0) / nx
     deg = 2 # polynomial degree
     nsp = deg + 1
-    u0 = -6
-    u1 = 6
-    nu = 28
-    cfl = 0.3
-    dt = cfl * dx
+    u0 = -5
+    u1 = 5
+    nu = 100
+    cfl = 0.1
+    dt = cfl * dx / u1
     t = 0.0
 end
 
@@ -91,8 +91,9 @@ function mol!(du, u, p, t) # method of lines
         prim = conserve_prim(w, 3.0)
         #prim = [prim[1], 1., prim[3]]
         M[i, :, k] .= maxwellian(velo, prim)
+        #u[i, :, k] .= M[i, :, k]
     end
-    τ = 0.0001
+    τ = 1e-4
 
     f = similar(u)
     for i = 1:ncell, j = 1:nu, k = 1:nsp
@@ -132,50 +133,50 @@ function mol!(du, u, p, t) # method of lines
     end
 end
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 1.0)
 p = (pspace.dx, e2f, f2e, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, dgr)
 prob = ODEProblem(mol!, f, tspan, p)
 sol = solve(
     prob,
+    RK4(),
     #ABDF2(),
     #TRBDF2(),
     #Kvaerno3(),
-    KenCarp3(),
+    #KenCarp3(),
     saveat = tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
     adaptive = false,
-    dt = 0.0003,
+    dt = dt,
     progress = true,
     progress_steps = 10,
     progress_name = "frode",
     #autodiff = false,
 )
 
-plot(xsp[:, 2], w[:, 1, 2])
 begin
-    prim = zeros(nx, 3, nsp)
-    for i = 1:nx, j = 1:nsp
-        _w = moments_conserve(sol.u[end][i, :, j], vspace.u, vspace.weights)
-        prim[i, :, j] .= conserve_prim(_w, 3.0)
+    x = zeros(nx * nsp)
+    w = zeros(nx * nsp, 3)
+    prim = zeros(nx * nsp, 3)
+    prim0 = zeros(nx * nsp, 3)
+    for i = 1:nx
+        idx0 = (i - 1) * nsp
+        idx = idx0+1:idx0+nsp
+
+        for j = 1:nsp
+            idx = idx0 + j
+            x[idx] = xsp[i, j]
+
+            w[idx, :] .= moments_conserve(sol.u[end][i, :, j], vspace.u, vspace.weights)
+            prim[idx, :] .= conserve_prim(w[idx, :], 3.0)
+            prim0[idx, :] .= [1.0 + 0.1 * sin(2.0 * π * x[idx]), 1.0, 2 * 0.5 / (1.0 + 0.1 * sin(2.0 * π * x[idx]))]
+        end
     end
-    plot!(xsp[:, 2], prim[:, 1:2, 2])
-    plot!(xsp[:, 2], 1 ./ prim[:, 3, 2])
 end
-#=
-prob = remake(prob, u0=sol.u[end], tspan=tspan, p=p)
-sol = solve(
-    prob,
-    #ROCK4(),
-    Midpoint(),
-    saveat = tspan[2],
-    #reltol = 1e-8,
-    #abstol = 1e-8,
-    adaptive = false,
-    dt = 0.0001,
-    progress = true,
-    progress_steps = 10,
-    progress_name = "frode",
-    #autodiff = false,
-)
-=#
+
+FluxRC.L1_error(prim[:, 1], prim0[:, 1], dx) |> println
+FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
+FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
+
+plot(x, prim0[:, 1])
+plot!(x[1:end], prim[1:end, 1])
