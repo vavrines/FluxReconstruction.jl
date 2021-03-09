@@ -1,9 +1,15 @@
-using KitBase, OrdinaryDiffEq, Plots, LinearAlgebra
-using KitBase.PyCall
+using KitBase, OrdinaryDiffEq, LinearAlgebra, BSON
+using KitBase.Plots, KitBase.PyCall
 import FluxRC
 using Logging: global_logger
 using TerminalLoggers: TerminalLogger
 global_logger(TerminalLogger())
+
+begin
+    itp = pyimport("scipy.interpolate")
+    cd(@__DIR__)
+    BSON.@load "ref.bson" ref
+end
 
 begin
     x0 = 0
@@ -16,7 +22,7 @@ begin
     u0 = -5
     u1 = 5
     nu = 100
-    cfl = 0.1
+    cfl = 0.08
     dt = cfl * dx / (u1 + 2.)
     t = 0.0
 end
@@ -206,23 +212,31 @@ begin
     end
 end
 
-#FluxRC.L1_error(prim[:, 1], prim0[:, 1], dx) |> println
-#FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
-#FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
-FluxRC.L1_error(prim[:, 1], f_ref(x), dx) |> println
-FluxRC.L2_error(prim[:, 1], f_ref(x), dx) |> println
-FluxRC.L∞_error(prim[:, 1], f_ref(x), dx) |> println
+begin
+    #FluxRC.L1_error(prim[:, 1], prim0[:, 1], dx) |> println
+    #FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
+    #FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
 
+    f_ref = itp.interp1d(x_ref, ref[:e_3][:, 1], kind="cubic")
+    FluxRC.L1_error(prim[:, 1], f_ref(x), dx) |> println
+    FluxRC.L2_error(prim[:, 1], f_ref(x), dx) |> println
+    FluxRC.L∞_error(prim[:, 1], f_ref(x), dx) |> println
+end
 
 plot(x, prim0[:, 1])
 scatter!(x[1:end], prim[1:end, 1])
 
-using JLD2
-cd(@__DIR__)
-@save "tau-3.jld2" x prim
 
 
-x_ref = deepcopy(x)
-sol_ref = deepcopy(prim)
-itp = pyimport("scipy.interpolate")
-f_ref = itp.interp1d(x_ref, sol_ref[:, 1], kind="cubic")
+ref_1 = deepcopy(prim)
+ref_2 = deepcopy(prim)
+ref_3 = deepcopy(prim)
+ref_4 = deepcopy(prim)
+
+ref = Dict()
+ref[:e_1] = ref_1
+ref[:e_2] = ref_2
+ref[:e_3] = ref_3
+ref[:e_4] = ref_4
+
+BSON.@save "ref.bson" ref

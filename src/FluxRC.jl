@@ -1,10 +1,10 @@
 module FluxRC
 
 using GSL
-using FastGaussQuadrature
-using KitBase
-using OffsetArrays
 using Statistics
+using KitBase
+using KitBase.FastGaussQuadrature
+using KitBase.OffsetArrays
 
 export L1_error, L2_error, L∞_error
 export legendre_point, lagrange_point, ∂legendre, ∂radau, ∂lagrange
