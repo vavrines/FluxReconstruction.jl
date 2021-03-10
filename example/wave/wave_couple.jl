@@ -14,7 +14,7 @@ end
 begin
     x0 = 0
     x1 = 1
-    nx = 40#100
+    nx = 20#100
     nface = nx + 1
     dx = (x1 - x0) / nx
     deg = 3 # polynomial degree
@@ -88,7 +88,7 @@ function mol!(du, u, p, t) # method of lines
     nu = size(pdf, 2)
     nsp = size(pdf, 3)
 
-    τ = 1e-4
+    τ = 1e-1
 #=
     @inbounds Threads.@threads for i = 1:ncell
         for k = 1:nsp
@@ -176,10 +176,10 @@ p = (pspace.dx, e2f, f2e, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dgl, 
 prob = ODEProblem(mol!, u0, tspan, p)
 sol = solve(
     prob,
-    #BS3(),
+    BS3(),
     #RK4(),
     #TRBDF2(),
-    KenCarp3(),
+    #KenCarp3(),
     #KenCarp4(),
     saveat = tspan[2],
     reltol = 1e-10,
@@ -224,10 +224,25 @@ begin
     FluxRC.L∞_error(prim[:, 1], f_ref(x), dx) |> println
 end
 
-plot(x, prim0[:, 1])
-scatter!(x[1:end], prim[1:end, 1])
+plot(x_ref, ref[:e_4][:, 1], label="ref", color=:gray32, lw=2, xlabel="x", ylabel="ρ")
+plot!(x_ref, ref[:e_3][:, 1], label=:none, color=:gray32, lw=2)
+plot!(x_ref, ref[:e_2][:, 1], label=:none, color=:gray32, lw=2)
+plot!(x_ref, ref[:e_1][:, 1], label=:none, color=:gray32, lw=2)
+scatter!(x[1:end], prim_4[1:end, 1], color=1, markeralpha=0.6, label="Kn=0.0001")
+scatter!(x[1:end], prim_3[1:end, 1], color=2, markeralpha=0.6, label="Kn=0.001")
+scatter!(x[1:end], prim_2[1:end, 1], color=3, markeralpha=0.6, label="Kn=0.01")
+scatter!(x[1:end], prim_1[1:end, 1], color=4, markeralpha=0.6, label="Kn=0.1")
+
+savefig("wave.pdf")
 
 #=
+prim_4 = deepcopy(prim)
+prim_3 = deepcopy(prim)
+prim_2 = deepcopy(prim)
+prim_1 = deepcopy(prim)
+
+BSON.@save "num.bson" x prim
+
 ref_1 = deepcopy(prim)
 ref_2 = deepcopy(prim)
 ref_3 = deepcopy(prim)
