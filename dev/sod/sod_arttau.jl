@@ -19,11 +19,11 @@ begin
     nsp = deg + 1
     u0 = -5
     u1 = 5
-    nu = 16
+    nu = 100
     cfl = 0.1
     dt = cfl * dx / (u1 + 1.2)
     t = 0.0
-    knudsen = 1e-4
+    knudsen = 1e-2
     mu = ref_vhs_vis(knudsen, 1.0, 0.5)
 end
 
@@ -180,8 +180,8 @@ function mol!(du, u, p, t) # method of lines
                 )
 
             #fac = dx[i] / (knudsen / u[i, 1, ppp1] )
-            fac = 3.0 * dx[i] / knudsen
-            #@show fac
+            #fac = 5.0 * dx[i] / knudsen
+            fac = 0.0
 
             j = 4:nu+3
             du[i, j, ppp1] .=
@@ -240,16 +240,16 @@ for i in axes(u0, 1), k in axes(u0, 3)
     u0[i, j, k] .= b0[i, :, k]
 end
 
-tspan = (0.0, 0.15)
+tspan = (0.0, 0.13)
 nt = floor(tspan[2] / dt) |> Int
 p = (pspace.dx, vspace.u, vspace.weights, δ, knudsen, mu, ll, lr, lpdm, dgl, dgr)
 
 prob = ODEProblem(mol!, u0, tspan, p)
 itg = init(
     prob,
-    #Euler(),
+    BS3(),
     #ABDF2(),
-    TRBDF2(),
+    #TRBDF2(),
     #KenCarp3(),
     #KenCarp4(),
     #reltol = 1e-8,
@@ -287,10 +287,62 @@ begin
             prim[idx, 4] = 0.5 * prim[idx, 1] / prim[idx, 3]
         end
     end
-    scatter(x[1:2:end], prim[1:2:end, 1:2])
-    scatter!(x[1:2:end], prim[1:2:end, 4])
-    plot!(x_ref, sol_ref[:, 1:3])
-    
-    #plot!(x, 1 ./ prim[:, 3])
-    #scatter!(x, prim[:, 4])
 end
+
+### buffer zone
+Plots.plot(x_ref, sol_ref[:, 1], lw=2, color=:gray32, label="ref", xlabel="x")
+Plots.plot!(x_ref, sol_ref[:, 2:3], lw=2, color=:gray32, label=:none)
+Plots.scatter!(x[1:end], markeralpha=0.6, prim[1:end, 1:2])
+Plots.scatter!(x[1:end], markeralpha=0.6, prim[1:end, 4])
+###
+
+
+
+#prim_4 = zero(prim)
+#prim_nofilt = zero(prim)
+#prim_2 = zero(prim)
+#prim_0 = zero(prim)
+
+#prim_4 .= prim
+#prim_nofilt .= prim
+#prim_2 .= prim
+prim_0
+
+
+
+#x_free = deepcopy(x)
+#prim_free = deepcopy(prim)
+
+
+
+Plots.plot(x[1:end], markeralpha=0.6, prim_free[1:end, 1:2])
+
+
+
+Plots.plot(x_ref, sol_ref[:, 1], lw=2, color=:gray32, label="Euler", xlabel="x")
+Plots.plot!(x_ref, sol_ref[:, 2:3], lw=2, color=:gray32, label=:none)
+Plots.plot!(x_free, prim_free[:, 1], lw=2, color=:gray32, line=:dash, label="collisionless", xlabel="x")
+Plots.plot!(x_free, prim_free[:, 2], lw=2, color=:gray32, line=:dash, label=:none)
+Plots.plot!(x_free, prim_free[:, 4], lw=2, color=:gray32, line=:dash, label=:none)
+Plots.scatter!(x[1:2:end], markeralpha=0.6, color=1, prim[1:2:end, 1], label="density")
+Plots.scatter!(x[1:2:end], markeralpha=0.6, color=2, prim[1:2:end, 2], label="velocity")
+Plots.scatter!(x[1:2:end], markeralpha=0.6, color=3, prim[1:2:end, 4], label="temperature")
+Plots.savefig("sod_e2.pdf")
+
+Plots.plot(x_free, prim_free[:, 1], lw=2, color=:gray32, label="collisionless", xlabel="x")
+Plots.plot!(x_free, prim_free[:, 2], lw=2, color=:gray32, label=:none)
+Plots.plot!(x_free, prim_free[:, 4], lw=2, color=:gray32, label=:none)
+Plots.scatter!(x[1:2:end], markeralpha=0.6, color=1, prim[1:2:end, 1], label="density")
+Plots.scatter!(x[1:2:end], markeralpha=0.6, color=2, prim[1:2:end, 2], label="velocity")
+Plots.scatter!(x[1:2:end], markeralpha=0.6, color=3, prim[1:2:end, 4], label="temperature")
+Plots.savefig("sod_e0.pdf")
+
+Plots.plot(x_ref, sol_ref[:, 1], lw=2, color=:gray32, label="Euler", xlabel="x")
+Plots.plot!(x_ref, sol_ref[:, 2:3], lw=2, color=:gray32, label=:none)
+Plots.plot!(x[1:end], line=:dash, lw=2, color=:gray32, prim_nofilt[1:end, 1], label="no disspation")
+Plots.plot!(x[1:end], line=:dash, lw=2, color=:gray32, prim_nofilt[1:end, 2], label=:none)
+Plots.plot!(x[1:end], line=:dash, lw=2, color=:gray32, prim_nofilt[1:end, 4], label=:none)
+Plots.scatter!(x[1:2:end], prim_4[1:2:end, 1], markeralpha=0.6, lw=2, color=1, label="density")
+Plots.scatter!(x[1:2:end], prim_4[1:2:end, 2], markeralpha=0.6, lw=2, color=2, label="velocity")
+Plots.scatter!(x[1:2:end], prim_4[1:2:end, 4], markeralpha=0.6, lw=2, color=3, label="pressure")
+Plots.savefig("sod_e4.pdf")
