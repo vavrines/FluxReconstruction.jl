@@ -1,0 +1,48 @@
+# setup
+matter = gas
+case = cavity
+space = 2d2f2v
+flux = kfvs
+collision = bgk
+nSpecies = 1
+interpOrder = 2
+limiter = vanleer
+boundary = maxwell
+cfl = 0.8
+maxTime = 2.0
+
+# phase space
+x0 = 0.0
+x1 = 1.0
+nx = 50
+y0 = 0.0
+y1 = 1.0
+ny = 1
+pMeshType = uniform
+nxg = 0
+nyg = 0
+
+# velocity space
+umin = -5.0
+umax = 5.0
+nu = 72
+vmin = -5.0
+vmax = 5.0
+nv = 72
+vMeshType = rectangle
+nug = 0
+nvg = 0
+
+# gas
+knudsen = 0.11283791670955127
+mach = 0.0
+prandtl = 1.0
+inK = 1.0
+omega = 0.81
+alphaRef = 1.0
+omegaRef = 0.5
+
+# boundary
+uLid = 1.0
+vLid = 0.0
+tLid = 1.0
