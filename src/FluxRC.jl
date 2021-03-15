@@ -19,5 +19,6 @@ include("poly.jl")
 include("geo.jl")
 include("interpolate.jl")
 include("derivative.jl")
+include("integrator.jl")
 
 end
