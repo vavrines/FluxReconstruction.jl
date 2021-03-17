@@ -14,7 +14,7 @@ Plots.savefig("coette_u.pdf")
 cd(@__DIR__)
 sone = CSV.File("sone.csv") |> DataFrame
 Plots.plot(log10.(sone.x), sone.tau, lw=2, color=:gray32, line=:dash, 
-label="Sone", xlabel="log(Kn)", ylabel="τ/τw", legend=:topleft)
+label="Sone", xlabel="log(Kn)", ylabel="τ/τ₀", legend=:topleft)
 
 itp = pyimport("scipy.interpolate")
 
