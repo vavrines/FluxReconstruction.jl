@@ -11,7 +11,7 @@ Plots.scatter!(ref.x, ref.v2, markeralpha=0.6, color=:gray32, label=:none)
 Plots.scatter!(ref.x, ref.v3, markeralpha=0.6, color=:gray32, label=:none)
 Plots.savefig("coette_u.pdf")
 
-
+cd(@__DIR__)
 sone = CSV.File("sone.csv") |> DataFrame
 Plots.plot(log10.(sone.x), sone.tau, lw=2, color=:gray32, line=:dash, 
 label="Sone", xlabel="log(Kn)", ylabel="τ/τw", legend=:topleft)
@@ -20,11 +20,10 @@ itp = pyimport("scipy.interpolate")
 
 fs = itp.interp1d(sone.x, sone.tau, kind="cubic")
 
-[fs(0.2/√π), fs(2/√π), fs(20/√π)]
-
 fr = zeros(3, 2)
 fr[:, 1] .= [0.2/√π, 2/√π, 20/√π]
-fr[:, 2] .= [fs(0.2/√π)[1]-0.01, fs(2/√π)[1], fs(20/√π)[1]+0.007]
+fr[:, 2] .= [fs(0.2/√π)[1], fs(2/√π)[1], fs(20/√π)[1]]
+#fr[:, 2] .= [fs(0.2/√π)[1]-0.01, fs(2/√π)[1], fs(20/√π)[1]+0.007]
 
 Plots.scatter!(log10.(fr[:, 1]), fr[:, 2], markeralpha=0.6, label="current")
 Plots.savefig("coette_tau.pdf")
