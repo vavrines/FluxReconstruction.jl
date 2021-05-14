@@ -162,6 +162,85 @@ end
 
 
 """
+Unstructued physical space for flux reconstruction method
+
+"""
+struct UnstructFRPSpace{A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q} <: AbstractPhysicalSpace
+    cells::A # all information: cell, line, vertex
+    points::B # locations of vertex points
+    cellid::C # node indices of elements
+    cellType::D # inner/boundary cell
+    cellNeighbors::E # neighboring cells id
+    cellFaces::F # cell edges id
+    cellCenter::G # cell center location
+    cellArea::H # cell size
+    facePoints::I # ids of two points at edge
+    faceCells::J # ids of two cells around edge
+    faceCenter::K # edge center location
+    faceType::L
+
+    rs::M
+    np::N
+    xp::O
+    weights::P
+    dx::Q
+end
+
+function UnstructFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
+    cells, points = KitBase.read_mesh(file)
+    cellid = KitBase.extract_cell(cells)
+    edgePoints, edgeCells, cellNeighbors = KitBase.mesh_connectivity_2D(cellid)
+    cellType = KitBase.mesh_cell_type(cellNeighbors)
+    cellArea = KitBase.mesh_area_2D(points, cellid)
+    cellCenter = KitBase.mesh_center_2D(points, cellid)
+    edgeCenter = KitBase.mesh_face_center(points, edgePoints)
+    cellEdges = KitBase.mesh_cell_face(cellid, edgeCells)
+    edgeType = KitBase.mesh_face_type(edgeCells, cellType)
+
+    np = (deg+1) * (deg+2) ÷ 2
+    rs, weights = tri_quadrature(deg)
+    xp = global_sp(points, cellid, rs)
+    dx = [[
+        point_distance(
+            cellCenter[i, :],
+            points[cellid[i, 1], :],
+            points[cellid[i, 2], :],
+        ),
+        point_distance(
+            cellCenter[i, :],
+            points[cellid[i, 2], :],
+            points[cellid[i, 3], :],
+        ),
+        point_distance(
+            cellCenter[i, :],
+            points[cellid[i, 3], :],
+            points[cellid[i, 1], :],
+        ),
+    ] for i in axes(cellid, 1)]
+
+    return UnstructFRPSpace(
+        cells,
+        points,
+        cellid,
+        cellType,
+        cellNeighbors,
+        cellEdges,
+        cellCenter,
+        cellArea,
+        edgePoints,
+        edgeCells,
+        edgeCenter,
+        edgeType,
+        rs,
+        np,
+        xp,
+        weights,
+        dx,
+    )
+end
+
+
+"""
 Calculate global location of solution points
 
 """
@@ -187,4 +266,29 @@ function global_sp(
     end
 
     return xp, yp
+end
+
+# ------------------------------------------------------------
+# local frame r-s --> global frame x-y
+# indexing based on cell ids
+# 1, 2: bottom points
+# 3: top point
+# ------------------------------------------------------------
+function global_sp(
+    points::AbstractMatrix{T1},
+    cellid::AbstractMatrix{T2},
+    rs::AbstractMatrix{T3},
+) where {T1<:Real,T2<:Integer,T3<:Real}
+    r = rs[:, 1]
+    s = rs[:, 2]
+    xsp = similar(points, size(cellid, 1), size(rs, 1), size(rs, 2))
+
+    for i in axes(xsp, 1), j in axes(xsp, 2)
+        xsp[i, j, :] = 
+            (-3.0 * r[j] + 2.0 - √3 * s[j]) / 6.0 .* points[cellid[i, 1], 1:2] + 
+            (3.0 * r[j] + 2.0 - √3 * s[j]) / 6.0 .* points[cellid[i, 2], 1:2] + 
+            (2.0 + 2.0 * √3 * s[j]) / 6.0 .* points[cellid[i, 3], 1:2]
+    end
+
+    return xsp
 end
