@@ -1,4 +1,4 @@
-import FluxRC
+using FluxRC
 
 deg = 2
 nsp = deg + 1

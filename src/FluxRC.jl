@@ -1,6 +1,7 @@
 module FluxRC
 
 using GSL
+using Jacobi
 using LinearAlgebra
 using PyCall
 using Statistics
@@ -10,9 +11,21 @@ using KitBase.OffsetArrays
 using KitBase.SpecialFunctions
 
 export L1_error, L2_error, L∞_error
-export legendre_point, lagrange_point, ∂legendre, ∂radau, ∂lagrange, standard_lagrange
+export legendre_point,
+       lagrange_point,
+       ∂legendre,
+       ∂radau,
+       ∂lagrange,
+       standard_lagrange,
+       simplex_basis,
+       vandermonde_matrix
 export tri_quadrature
-export FRPSpace1D, FRPSpace2D, UnstructFRPSpace, global_sp
+export FRPSpace1D,
+       FRPSpace2D,
+       UnstructFRPSpace,
+       global_sp,
+       rs_ab,
+       xy_rs
 export interp_interface!
 export poly_derivative!
 
