@@ -18,6 +18,7 @@ export legendre_point,
        ∂lagrange,
        standard_lagrange,
        simplex_basis,
+       ∂simplex_basis,
        vandermonde_matrix
 export tri_quadrature
 export FRPSpace1D,

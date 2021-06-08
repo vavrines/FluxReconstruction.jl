@@ -93,6 +93,40 @@ simplex_basis(a::AbstractVector{T}, b::AbstractVector{T}, i, j) where {T<:Real} 
     [simplex_basis(a[k], b[k], i, j) for k in eachindex(a)]
 
 
+function ∂simplex_basis(a, b, id, jd)
+    fa = jacobi(a, id, 0, 0)
+    dfa = djacobi(a, id, 0, 0)
+    gb = jacobi(b, jd, 2*id+1, 0)
+    dgb = djacobi(b, jd, 2*id+1, 0)
+
+    # r-derivative
+    # d/dr = da/dr d/da + db/dr d/db = (2/(1-s)) d/da = (2/(1-b)) d/da
+    dmodedr = dfa * gb
+    if id > 0
+        dmodedr *= (0.5 * (1.0 - b))^(id - 1)
+    end
+
+    # s-derivative
+    # d/ds = ((1+a)/2)/((1-b)/2) d/da + d/db
+    dmodeds = dfa * (gb * (0.5 * (1.0 + a)))
+    if id > 0
+        dmodeds *= (0.5 * (1.0 - b)) ^ (id - 1)
+    end
+
+    tmp = dgb * (0.5 * (1.0 - b))^id
+    if id > 0
+        tmp -= 0.5 * id * gb * ((0.5 * (1.0 - b))^(id - 1))
+    end
+    dmodeds += fa * tmp
+    
+    # normalization
+    dmodedr *= 2^(id + 0.5)
+    dmodeds *= 2^(id + 0.5)
+
+    return dmodedr, dmodeds
+end
+
+
 """
     vandermonde_matrix(N, r, s)
 
