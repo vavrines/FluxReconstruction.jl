@@ -330,7 +330,7 @@ end
 Transfer coordinates (x, y) -> (r,s) from equilateral to right triangle
 
 """
-function xy_rs(x, y) 
+function xy_rs(x::T, y::T) where {T<:Real}
     L1 = (sqrt(3.0)*y+1.0)/3.0;
     L2 = (-3.0*x - sqrt(3.0)*y + 2.0)/6.0;
     L3 = ( 3.0*x - sqrt(3.0)*y + 2.0)/6.0;

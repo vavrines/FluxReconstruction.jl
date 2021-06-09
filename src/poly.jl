@@ -75,7 +75,7 @@ end
 
 
 """
-simplex_basis(a, b, i, j)
+    simplex_basis(a, b, i, j)
 
 Evaluate 2D orthonormal polynomial at simplex (a, b) of order (i, j)
 Translated from Simplex2DP.m
@@ -93,7 +93,7 @@ simplex_basis(a::AbstractVector{T}, b::AbstractVector{T}, i, j) where {T<:Real} 
     [simplex_basis(a[k], b[k], i, j) for k in eachindex(a)]
 
 
-function ∂simplex_basis(a, b, id, jd)
+function ∂simplex_basis(a::T, b::T, id, jd) where {T<:Real}
     fa = jacobi(a, id, 0, 0)
     dfa = djacobi(a, id, 0, 0)
     gb = jacobi(b, jd, 2*id+1, 0)
@@ -126,6 +126,17 @@ function ∂simplex_basis(a, b, id, jd)
     return dmodedr, dmodeds
 end
 
+function ∂simplex_basis(a::AbstractVector{T}, b::AbstractVector{T}, id, jd) where {T<:Real}
+    dmodedr = zero(a)
+    dmodeds = zero(b)
+    
+    for i in eachindex(a)
+        dmodedr[i], dmodeds[i] = ∂simplex_basis(a[i], b[i], id, jd)
+    end
+
+    return dmodedr, dmodeds
+end
+
 
 """
     vandermonde_matrix(N, r, s)
@@ -150,4 +161,27 @@ function vandermonde_matrix(N, r, s)
     end
 
     return V2D
+end
+
+
+"""
+gradient of the modal basis (i,j) at (r,s) at order N
+
+"""
+function ∂vandermonde_matrix(N, r, s)
+    V2Dr = zeros(length(r), (N + 1) * (N + 2) ÷ 2)
+    V2Ds = zeros(length(r), (N + 1) * (N + 2) ÷ 2)
+    
+    # tensor-product coordinates
+    a, b = rs_ab(r, s)
+
+    sk = 1
+    for i = 0:N
+        for j = 0:N-i
+            V2Dr[:, sk], V2Ds[:, sk] = ∂simplex_basis(a, b, i, j)
+            sk += 1
+        end
+    end
+
+    return V2Dr, V2Ds
 end
