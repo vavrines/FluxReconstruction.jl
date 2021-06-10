@@ -354,3 +354,13 @@ end
 function xy_rs(coords::AbstractMatrix{T}) where {T<:Real}
     return xy_rs(coords[:, 1], coords[:, 2])
 end
+
+
+function rs_xy(r, s, v1::AbstractVector{T}, v2::AbstractVector{T}, v3::AbstractVector{T}) where {T<:Real}
+    return @. -(r + s) / 2 * v1 + (r + 1) / 2 * v2 + (s + 1) / 2 * v3
+end
+
+function rs_xy(v::AbstractVector{T}, v1::AbstractVector{T}, v2::AbstractVector{T}, v3::AbstractVector{T}) where {T<:Real}
+    r, s = v
+    return rs_xy(r, s, v1, v2, v3)
+end

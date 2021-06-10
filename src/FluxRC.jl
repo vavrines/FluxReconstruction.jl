@@ -21,13 +21,14 @@ export legendre_point,
        ∂simplex_basis,
        vandermonde_matrix,
        ∂vandermonde_matrix
-export tri_quadrature
+export tri_quadrature, triface_quadrature
 export FRPSpace1D,
        FRPSpace2D,
        UnstructFRPSpace,
        global_sp,
        rs_ab,
-       xy_rs
+       xy_rs,
+       rs_xy
 export interp_interface!
 export poly_derivative!
 
