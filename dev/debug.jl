@@ -1,9 +1,5 @@
 using FluxRC, KitBase, Plots, LinearAlgebra
 
-
-fpg = global_fp(ps.points, ps.cellid, N)
-
-
 cd(@__DIR__)
 ps = UnstructPSpace("square.msh")
 
@@ -15,7 +11,7 @@ nface = size(ps.faceType, 1)
 J = rs_jacobi(ps.cellid, ps.points)
 
 spg = global_sp(ps.points, ps.cellid, N)
-fpg = global_fp(ps.points, ps.cellid, ps.faceCells, ps.facePoints, N)
+fpg = global_fp(ps.points, ps.cellid, N)
 
 pl, wl = tri_quadrature(N)
 V = vandermonde_matrix(N, pl[:, 1], pl[:, 2])
@@ -68,19 +64,26 @@ for i in 1:ncell, j in 1:3, k in 1:deg+1
 end
 
 f_interaction = zeros(ncell, 3, deg+1, 2)
+au = zeros(2)
 for i = 1:ncell, j = 1:3, k = 1:deg+1
-    _ψ = zeros(Np)
-    for i = 1:3
-        _ψ .= vandermonde_matrix(N, pf[j, k, 1], pf[j, k, 2])[:]
+    fL = J[i] * f_face[i, j, k, :]
+
+    ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
+
+    fR = zeros(2)
+    if ni > 0
+        fR .= J[ni] * f_face[ni, nj, nk, :]
+
+        @. au = (fL - fR) / (u_face[i, j, k] - u_face[ni, nj, nk] + 1e-6)
+        @. f_interaction[i, j, k, :] = 
+            0.5 * (fL + fR) -
+            0.5 * abs(au) * (u_face[i, j, k] - u_face[ni, nj, nk])
+    else
+        @. f_interaction[i, j, k, :] = 0.0
     end
-
-    _l = zeros(3, N+1, Np)
-    for i = 1:3, j = 1:N+1
-        lf[i, j, :] .= V' \ ψf[i, j, :]
-    end
-
-
 end
+
+f_interaction[100, :, :, :]
 
 
 """
@@ -91,31 +94,41 @@ local rank
 
 """
 function neighbor_fpidx(IDs, ps, fpg)
+    # id-th cell, fd-th face, jd-th point
     id, fd, jd = IDs
 
-    # adjoining cell id
+    # ending point ids of a face
     if fd == 1
-        vrks = [1, 2]
+        pids = [ps.cellid[id, 1], ps.cellid[id, 2]]
     elseif fd == 2
-        vrks = [2, 3]
+        pids = [ps.cellid[id, 2], ps.cellid[id, 3]]
     elseif fd == 3
-        vrks = [3, 1]
+        pids = [ps.cellid[id, 3], ps.cellid[id, 1]]
     end
 
-    pids = [ps.cellid[id, vrks[1]], ps.cellid[id, vrks[2]]]
-
+    # global face index
     faceids = ps.cellFaces[id, :]
 
-    faceid = 0
-    for i in eachindex(faceids)
-        if pids[1] in ps.facePoints[i, :] && pids[2] in ps.facePoints[i, :]
-            faceid = faceids[i]
+    function get_faceid()
+        for i in eachindex(faceids)
+            if sort(pids) == sort(ps.facePoints[faceids[i], :])
+                return faceids[i]
+            end
         end
-    end
 
+        @warn "no face id found"
+    end
+    faceid = get_faceid()
+
+    # neighbor cell id
     neighbor_cid = setdiff(ps.faceCells[faceid, :], id)[1]
 
-    # face rank
+    # in case of boundary cell
+    if neighbor_cid <= 0
+        return neighbor_cid, -1, -1
+    end
+
+    # face rank in neighbor cell
     if ps.cellid[neighbor_cid, 1] ∉ ps.facePoints[faceid, :]
         neighbor_frk = 2
     elseif ps.cellid[neighbor_cid, 2] ∉ ps.facePoints[faceid, :]
@@ -124,103 +137,15 @@ function neighbor_fpidx(IDs, ps, fpg)
         neighbor_frk = 1
     end
 
-    # node rank
-    neighbor_nrk = findall(x->x==fpg[id, fd, jd], fpg[neighbor_cid, neighbor_frk, :])[1]
+    # point rank in neighbor cell
+    neighbor_nrk1 = findall(x->x==fpg[id, fd, jd, 1], fpg[neighbor_cid, neighbor_frk, :, 1])
+    neighbor_nrk2 = findall(x->x==fpg[id, fd, jd, 2], fpg[neighbor_cid, neighbor_frk, :, 2])
+    neighbor_nrk = intersect(neighbor_nrk1, neighbor_nrk2)[1]
 
     return neighbor_cid, neighbor_frk, neighbor_nrk
 end
 
-
-
-
-
-
-neighbor_fpidx([1, 2, 2], ps, fpg)
-
-
-
-
-
-ps.cellFaces[1, :]
-
-ps.facePoints[2, :]
-
-ps.cellid[1, :]
-
-
-idx = 368
-
-ps.cellFaces[idx, :]
-ps.cellid[idx, :]
-ps.facePoints[805, :]
-
-
-
-vandermonde_matrix(N, pf[1, 1, 1], pf[1, 1, 2])[:]
-vandermonde_matrix(N, pf[1, :, 1], pf[1, :, 2])
-
-
-
-
-
-
-
-
-
-au = zeros(nface, deg+1, 2)
-f_interaction = zeros(nface, deg+1, 2)
-for i = 1:nface
-    c1, c2 = ps.faceCells[i, :]
-    if -1 in (c1, c2)
-        continue
-    end
-
-    pids = ps.facePoints[i, :]
-    if ps.cellid[c1, 1] ∉ pids
-        fid1 = 2
-    elseif ps.cellid[c1, 2] ∉ pids
-        fid1 = 3
-    elseif ps.cellid[c1, 3] ∉ pids
-        fid1 = 1
-    end
-
-    if ps.cellid[c2, 1] ∉ pids
-        fid2 = 2
-    elseif ps.cellid[c2, 2] ∉ pids
-        fid2 = 3
-    elseif ps.cellid[c2, 3] ∉ pids
-        fid2 = 1
-    end
-
-    jdx = collect(1:deg+1)
-    for j = 1:deg+1
-        fpg[i, ]
-
-    end
-
-    for j = 1:deg+1
-        fL = J[c1] * f_face[c1, fid1, j, :]
-        fR = J[c2] * f_face[c2, fid2, j, :]
-
-        @. au[i, j, :] =
-            (f_face[c1, fid1, j, :] - f_face[c2, fid2, j, :]) /
-            (u_face[c1, fid1, j] - u_face[c2, fid2, j] + 1e-6)
-
-        @. f_interaction[i, j, :] = 
-            0.5 * (f_face[c1, fid1, j, :] + f_face[c2, fid2, j, :]) -
-            0.5 * abs(au[i, j, :]) * (u_face[c1, fid1, j] - u_face[c2, fid2, j])
-    end
-end
-
-
-
-
-
-
-
-
-
-
+neighbor_fpidx([233, 3, 3], ps, fpg)
 
 
 
