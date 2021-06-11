@@ -20,15 +20,18 @@ export legendre_point,
        simplex_basis,
        ∂simplex_basis,
        vandermonde_matrix,
-       ∂vandermonde_matrix
+       ∂vandermonde_matrix,
+       correction_field
 export tri_quadrature, triface_quadrature
 export FRPSpace1D,
        FRPSpace2D,
        UnstructFRPSpace,
        global_sp,
+       global_fp,
        rs_ab,
        xy_rs,
-       rs_xy
+       rs_xy,
+       rs_jacobi
 export interp_interface!
 export poly_derivative!
 

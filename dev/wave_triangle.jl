@@ -174,10 +174,14 @@ function dudt!(du, u, p, t)
     end
 
     for i in 1:ncell
+        xr, yr = ps.points[ps.cellid[i, 2], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
+        xs, ys = ps.points[ps.cellid[i, 3], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
+        J = xr * ys - xs * yr
+        
         if ps.cellType[i] != 1
             for j in 1:nsp
                 du[i, j] = rhs1[i, j]# - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j])
-                du[i, j] = rhs1[i, j] - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]))
+                du[i, j] = rhs1[i, j] - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j]) / J
             end
         end
     end

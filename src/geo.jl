@@ -274,6 +274,7 @@ end
 # 1, 2: bottom points
 # 3: top point
 # ------------------------------------------------------------
+#=
 function global_sp(
     points::AbstractMatrix{T1},
     cellid::AbstractMatrix{T2},
@@ -291,6 +292,61 @@ function global_sp(
     end
 
     return xsp
+end=#
+
+function global_sp(
+    points::AbstractMatrix{T1},
+    cellid::AbstractMatrix{T2},
+    N::Integer,
+) where {T1<:Real,T2<:Integer}
+
+    pl, wl = tri_quadrature(N)
+    Np = size(wl, 1)
+
+    spg = zeros(size(cellid, 1), Np, 2)
+    for i in axes(spg, 1), j in axes(spg, 2)
+        id1, id2, id3 = cellid[i, :]
+        spg[i, j, :] .= rs_xy(pl[j, :], points[id1, 1:2], points[id2, 1:2], points[id3, 1:2])
+    end
+
+    return spg
+end
+
+#=
+function global_fp(points, cellid, faceCells, facePoints, N)
+    pf, wf = triface_quadrature(N)
+
+    fpg = zeros(size(faceCells, 1), N+1, 2)
+    for i in axes(fpg, 1), j in axes(fpg, 2)
+        idc = ifelse(faceCells[i, 1] != -1, faceCells[i, 1], faceCells[i, 2])
+        id1, id2, id3 = cellid[idc, :]
+
+        if !(id3 in facePoints[i, :])
+            idf = 1
+        elseif !(id1 in facePoints[i, :])
+            idf = 2
+        elseif !(id2 in facePoints[i, :])
+            idf = 3
+        end
+        
+        fpg[i, j, :] .= rs_xy(pf[idf, j, :], points[id1, 1:2], points[id2, 1:2], points[id3, 1:2])
+    end
+
+    return fpg
+end=#
+
+function global_fp(points, cellid, N)
+    pf, wf = triface_quadrature(N)
+
+    fpg = zeros(size(cellid, 1), 3, N+1, 2)
+    for i in axes(fpg, 1)
+        id1, id2, id3 = cellid[i, :]
+        for j in axes(fpg, 2), k in axes(fpg, 3)
+            fpg[i, j, k, :] .= rs_xy(pf[j, k, :], points[id1, 1:2], points[id2, 1:2], points[id3, 1:2])
+        end
+    end
+
+    return fpg
 end
 
 
@@ -363,4 +419,19 @@ end
 function rs_xy(v::AbstractVector{T}, v1::AbstractVector{T}, v2::AbstractVector{T}, v3::AbstractVector{T}) where {T<:Real}
     r, s = v
     return rs_xy(r, s, v1, v2, v3)
+end
+
+
+function rs_jacobi(cells, points)
+    ncell = size(cells, 1)
+    J = [
+        begin
+            xr, yr = points[cells[i, 2], 1:2] - points[cells[i, 1], 1:2]
+            xs, ys = points[cells[i, 3], 1:2] - points[cells[i, 1], 1:2]
+            [xr xs; yr ys]
+        end
+        for i = 1:ncell
+    ]
+
+    return J
 end

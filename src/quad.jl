@@ -74,6 +74,10 @@ end
 
 Calculate quadrature points along a face of right triangle
 
+- face 1: 1 -> 2
+- face 2: 2 -> 3
+- face 3: 3 -> 1
+
 Face 2 is assumed to be hypotenuse
 
 @arg N: polynomial degree
@@ -87,11 +91,11 @@ function triface_quadrature(N)
     p0, w0 = gausslegendre(N+1)
     
     pf[1, :, 1] .= p0
-    pf[2, :, 1] .= p0
+    pf[2, :, 1] .= p0[end:-1:1]
     pf[3, :, 1] .= -1.0
     pf[1, :, 2] .= -1.0
-    pf[2, :, 2] .= -p0
-    pf[3, :, 2] .= p0
+    pf[2, :, 2] .= p0
+    pf[3, :, 2] .= p0[end:-1:1]
     
     wf[1, :] .= w0 .* Δf[1]
     wf[2, :] .= w0 .* Δf[2]
