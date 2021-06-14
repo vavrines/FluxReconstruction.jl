@@ -31,7 +31,8 @@ export FRPSpace1D,
        rs_ab,
        xy_rs,
        rs_xy,
-       rs_jacobi
+       rs_jacobi,
+       neighbor_fpidx
 export interp_interface!
 export poly_derivative!
 
