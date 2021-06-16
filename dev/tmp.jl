@@ -15,9 +15,9 @@ fpg = global_fp(ps.points, ps.cellid, N)
 
 pl, wl = tri_quadrature(N)
 
-V = vandermonde_matrix(N, pl[:, 1], pl[:, 2])
+V = vandermonde_matrix(N, pl[:, 1], pl[:, 2]) # √
 Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2]) 
-∂l = ∂lagrange(V, Vr, Vs)
+∂l = ∂lagrange(V, Vr, Vs) # √
 
 ϕ = correction_field(N, V)
 
@@ -35,7 +35,8 @@ end
 a = -1.0
 u = zeros(size(ps.cellid, 1), Np)
 for i in axes(u, 1), j in axes(u, 2)
-    u[i, j] = max(exp(-300 * ((spg[i, j, 1] - 0.5)^2 + (spg[i, j, 2] - 0.5)^2)), 1e-4)
+    #u[i, j] = max(exp(-300 * ((spg[i, j, 1] - 0.5)^2 + (spg[i, j, 2] - 0.5)^2)), 1e-4)
+    u[i, j] = max(exp(-100 * ((spg[i, j, 1] - ps.cellCenter[1211, 1])^2 + (spg[i, j, 2] - ps.cellCenter[1211, 2])^2)), 1e-4)
 end
 
 f = zeros(size(ps.cellid, 1), Np, 2)
@@ -64,15 +65,6 @@ fn_face = zeros(ncell, 3, deg+1)
 for i in 1:ncell, j in 1:3, k in 1:deg+1
     fn_face[i, j, k] = sum(f_face[i, j, k, :] .* n[j])
 end
-
-
-fn_face[idx, 2, 2]
-
-ps.cellNeighbors[idx, :]
-
-u[idx, :]
-u[1179, :]
-
 
 f_interaction = zeros(ncell, 3, deg+1, 2)
 au = zeros(2)
@@ -103,39 +95,6 @@ for i in 1:ncell
     end
 end
 
-
-fn_interaction[idx, 2, 2]
-
-
-
-
-∂ψf = zeros(3, N+1, Np, 2)
-for i = 1:3
-    ∂ψf[i, :, :, 1], ∂ψf[i, :, :, 2] = ∂vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
-end
-
-u[idx, :]
-uhat = V \ u[idx, :]
-
-uhat .* Vr[3, :] |> sum
-uhat .* Vs[3, :] |> sum
-
-u[idx, :] .* ∂l[1, :, 1] |> sum
-u[idx, :] .* ∂l[5, :, 2] |> sum
-
-
-
-
-J[idx] * f[idx, 1, :]
-
-
-f[idx, :, 1] .* ∂l[1, :, 1] |> sum
-f[idx, :, 2] .* ∂l[1, :, 2] |> sum
-f[idx, :, 1] .* ∂l[5, :, 1] |> sum
-f[idx, :, 2] .* ∂l[5, :, 2] |> sum
-
-
-
 rhs1 = zeros(ncell, Np)
 for i in axes(rhs1, 1), j in axes(rhs1, 2)
     rhs1[i, j] = -sum(f[i, :, 1] .* ∂l[j, :, 1]) - sum(f[i, :, 2] .* ∂l[j, :, 2])
@@ -150,11 +109,13 @@ for i in 1:ncell
     if ps.cellType[i] != 1
         for j in 1:Np
             #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j]) / _J
-            rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j])
-            #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :])) / 3
+            #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j])
+            rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :])) / 3
         end
     end
 end
+
+idx = 1211
 
 rhs1[idx, :]
 
@@ -162,7 +123,43 @@ rhs2[idx, :]
 
 
 
+fd, jd = 1, 1
+u_face[idx, fd, jd]
+
+u[idx, :]
+
+
+ni, nj, nk = neighbor_fpidx([idx, 1, 1], ps, fpg)
+u_face[ni, nj, nk]
+
+u[ni, :]
+
+
+
+
+
+ps.cellNeighbors[idx, :]
+
+
+
+ps.cellFaces[idx, :]
+
+
+
+
+
+
 du = rhs1 .+ rhs2
+
+du[idx, :]
+
+
+u .+= du * dt
+
+
+write_vtk(ps.points, ps.cellid, u[:, 4])
+
+
 
 
 
@@ -177,7 +174,6 @@ fn_face[idx, 2, 2]
 
 
 
-idx = 1211
 J[idx] * f[idx, 6, :]
 J[idx] * f_face[idx, 1, 1, :]
 

@@ -36,10 +36,10 @@ end
 a = -1.0
 u = zeros(size(ps.cellid, 1), Np)
 for i in axes(u, 1), j in axes(u, 2)
-    u[i, j] = max(exp(-300 * ((spg[i, j, 1] - 0.5)^2 + (spg[i, j, 2] - 0.5)^2)), 1e-4)
+    u[i, j] = max(exp(-100 * ((spg[i, j, 1] - 0.5)^2 + (spg[i, j, 2] - 0.5)^2)), 1e-4)
 end
 
-f = zeros(size(ps.cellid, 1), Np, 2)
+#=f = zeros(size(ps.cellid, 1), Np, 2)
 for i in axes(f, 1)
     #xr, yr = ps.points[ps.cellid[i, 2], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
     #xs, ys = ps.points[ps.cellid[i, 3], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
@@ -49,7 +49,7 @@ for i in axes(f, 1)
         #f[i, j, :] .= [ys * fg - xs * gg, -yr * fg + xr * gg] ./ det(J[i])
         f[i, j, :] .= inv(J[i]) * [fg, gg] #/ det(J[i])
     end
-end # √
+end # √=#
 
 function dudt!(du, u, p, t)
     du .= 0.0
@@ -95,8 +95,8 @@ function dudt!(du, u, p, t)
 
             @. au = (fL - fR) / (u_face[i, j, k] - u_face[ni, nj, nk] + 1e-6)
             @. f_interaction[i, j, k, :] = 
-                0.5 * (fL + fR) #-
-                #0.5 * abs(au) * (u_face[i, j, k] - u_face[ni, nj, nk])
+                0.5 * (fL + fR) -
+                0.5 * abs(au) * (u_face[i, j, k] - u_face[ni, nj, nk])
         else
             @. f_interaction[i, j, k, :] = 0.0
         end
@@ -126,12 +126,16 @@ function dudt!(du, u, p, t)
             for j in 1:nsp
                 #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j]) / _J
                 rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j])
-                #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :])) / 3
+                #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]))
             end
         end
     end
 
-    du .= rhs1 .+ rhs2
+    for i = 1:ncell
+        if ps.cellType[i] == 0
+            du[i, :] .= rhs1[i, :] .+ rhs2[i, :]
+        end
+    end
 
     return nothing
 end
@@ -144,11 +148,11 @@ prob = ODEProblem(dudt!, u, tspan, p)
 dt = 0.01
 itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
 
-@showprogress for iter = 1:1
+@showprogress for iter = 1:10
     step!(itg)
 end
 
-write_vtk(ps.points, ps.cellid, itg.u[:, 4])
+write_vtk(ps.points, ps.cellid, itg.u[:, 2])
 
 du = zero(u)
 dudt!(du, u, p, 1.0)

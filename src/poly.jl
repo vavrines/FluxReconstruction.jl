@@ -95,8 +95,10 @@ Translated from Simplex2DP.m
 """
 function simplex_basis(a::T, b::T, i, j) where {T<:Real}
     # x, n, a, b
-    h1 = jacobi(a, i, 0, 0)
-    h2 = jacobi(b, j, 2*i+1, 0)
+    #h1 = jacobi(a, i, 0, 0)
+    #h2 = jacobi(b, j, 2*i+1, 0)
+    h1 = JacobiP(a, 0, 0, i)
+    h2 = JacobiP(b, 2*i+1, 0, j)
 
     return sqrt(2.0) * h1 * h2 * (1-b)^i
 end
@@ -106,10 +108,14 @@ simplex_basis(a::AbstractVector{T}, b::AbstractVector{T}, i, j) where {T<:Real} 
 
 
 function ∂simplex_basis(a::T, b::T, id, jd) where {T<:Real}
-    fa = jacobi(a, id, 0, 0)
-    dfa = djacobi(a, id, 0, 0)
-    gb = jacobi(b, jd, 2*id+1, 0)
-    dgb = djacobi(b, jd, 2*id+1, 0)
+    #fa = jacobi(a, id, 0, 0)
+    #dfa = djacobi(a, id, 0, 0)
+    #gb = jacobi(b, jd, 2*id+1, 0)
+    #dgb = djacobi(b, jd, 2*id+1, 0)
+    fa = JacobiP(a, 0, 0, id)
+    dfa = ∂JacobiP(a, 0, 0, id)
+    gb = JacobiP(b, 2*id+1, 0, jd)
+    dgb = ∂JacobiP(b, 2*id+1, 0, jd)
 
     # r-derivative
     # d/dr = da/dr d/da + db/dr d/db = (2/(1-s)) d/da = (2/(1-b)) d/da
@@ -227,4 +233,91 @@ function correction_field(N, V)
     end
 
     return ϕ
+end
+
+
+
+function JacobiP(x::T, alpha, beta, N) where {T<:Real}
+    xp = x
+    PL = zeros(N+1)
+
+    # P₀(x) and P₁(x)
+    gamma0 = 2^(alpha + beta + 1) / (alpha + beta + 1) * 
+        gamma(alpha + 1) * gamma(beta + 1) / gamma(alpha + beta + 1)
+    PL[1] = 1.0 / sqrt(gamma0)
+    if N == 0
+        return PL[1]
+    end
+    gamma1 = (alpha + 1) * (beta + 1) / (alpha + beta + 3) * gamma0
+    PL[2] = ((alpha + beta + 2) * xp / 2 + (alpha - beta) / 2) / sqrt(gamma1)
+    if N == 1
+        P = PL[2]
+        return P
+    end
+
+    # forward recurrence using the symmetry of the recurrence
+    aold = 2 / (2 + alpha + beta) * sqrt((alpha + 1) * (beta + 1) / (alpha + beta + 3))
+    for i = 1:N-1
+      h1 = 2 * i + alpha + beta
+      anew = 2 / (h1 + 2) * sqrt((i + 1) * (i + 1 + alpha + beta) * (i + 1 + alpha) * (i + 1 + beta) / (h1 + 1)/(h1 + 3))
+      bnew = -(alpha^2 - beta^2) / h1 / (h1 + 2)
+      PL[i+2] = 1 / anew * (-aold * PL[i] + (xp - bnew) * PL[i+1])
+      aold = anew
+    end
+    
+    P = PL[N+1]
+
+    return P
+end
+
+function JacobiP(x::AbstractArray{T}, alpha, beta, N) where {T<:Real}
+    xp = copy(x)
+    PL = zeros(N+1, length(xp))
+
+    # P₀(x) and P₁(x)
+    gamma0 = 2^(alpha + beta + 1) / (alpha + beta + 1) * 
+        gamma(alpha + 1) * gamma(beta + 1) / gamma(alpha + beta + 1)
+    PL[1, :] .= 1.0 / sqrt(gamma0)
+    if N == 0
+        P = PL[:]
+        return P
+    end
+    gamma1 = (alpha + 1) * (beta + 1) / (alpha + beta + 3) * gamma0
+    @. PL[2, :] = ((alpha + beta + 2) * xp / 2 + (alpha - beta) / 2) / sqrt(gamma1)
+    if N == 1
+        P = PL[N+1, :]
+        return P
+    end
+
+    # forward recurrence using the symmetry of the recurrence
+    aold = 2 / (2 + alpha + beta) * sqrt((alpha + 1) * (beta + 1) / (alpha + beta + 3))
+    for i = 1:N-1
+      h1 = 2 * i + alpha + beta
+      anew = 2 / (h1 + 2) * sqrt((i + 1) * (i + 1 + alpha + beta) * (i + 1 + alpha) * (i + 1 + beta) / (h1 + 1)/(h1 + 3));
+      bnew = -(alpha^2-beta^2)/h1/(h1+2);
+      @. PL[i+2, :] = 1 / anew * (-aold * PL[i, :] + (xp - bnew) * PL[i+1, :])
+      aold = anew
+    end
+    
+    P = PL[N+1, :]
+
+    return P
+end
+
+function ∂JacobiP(r::T, alpha, beta, N) where {T<:Real}
+    dP = 0.0
+    if N != 0
+        dP = sqrt(N * (N + alpha + beta + 1)) * JacobiP(r, alpha+1, beta+1, N-1)
+    end
+
+    return dP
+end
+
+function ∂JacobiP(r::AbstractArray{T}, alpha, beta, N) where {T<:Real}
+    dP = zero(r)
+    if N != 0
+        dP .= sqrt(N * (N + alpha + beta + 1)) .* JacobiP(r, alpha+1, beta+1, N-1)
+    end
+
+    return dP
 end

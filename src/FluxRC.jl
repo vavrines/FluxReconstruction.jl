@@ -21,7 +21,9 @@ export legendre_point,
        ∂simplex_basis,
        vandermonde_matrix,
        ∂vandermonde_matrix,
-       correction_field
+       correction_field,
+       JacobiP,
+       ∂JacobiP
 export tri_quadrature, triface_quadrature
 export FRPSpace1D,
        FRPSpace2D,
