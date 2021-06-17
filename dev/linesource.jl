@@ -2,7 +2,7 @@ using FluxRC, KitBase, Plots, OrdinaryDiffEq
 using ProgressMeter: @showprogress
 
 cd(@__DIR__)
-ps = KitBase.UnstructPSpace("linesource.msh")
+ps = KitBase.UnstructPSpace("../assets/linesource.msh")
 
 begin
     # quadrature
@@ -70,8 +70,10 @@ for i in 1:ncell
     cell_normal[i, 2, :] .= unit_normal(ps.points[pids[2], :], ps.points[pids[3], :])
     cell_normal[i, 3, :] .= unit_normal(ps.points[pids[3], :], ps.points[pids[1], :])
 
+    p = [ps.points[pids[1], :] .+ ps.points[pids[2], :], ps.points[pids[2], :] .+ ps.points[pids[3], :], ps.points[pids[3], :] .+ ps.points[pids[1], :]] / 2
+
     for j = 1:3
-        if sum(cell_normal[i, j, :] .* spg[i, 1, :]) > 0
+        if dot(cell_normal[i, j, :], p[j][1:2] - ps.cellCenter[i, 1:2]) < 0
             cell_normal[i, j, :] .= -cell_normal[i, j, :]
         end
     end
@@ -155,6 +157,8 @@ end
 
 tspan = (0.0, 1.0)
 p = N
+
+
 
 du = zero(u)
 dudt!(du, u, p, 0.)

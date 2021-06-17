@@ -2,7 +2,7 @@ using FluxRC, KitBase, Plots, OrdinaryDiffEq
 using ProgressMeter: @showprogress
 
 cd(@__DIR__)
-ps = UnstructPSpace("square.msh")
+ps = UnstructPSpace("../assets/square.msh")
 
 N = deg = 2
 Np = (N + 1) * (N + 2) ÷ 2
@@ -38,18 +38,6 @@ u = zeros(size(ps.cellid, 1), Np)
 for i in axes(u, 1), j in axes(u, 2)
     u[i, j] = max(exp(-100 * ((spg[i, j, 1] - 0.5)^2 + (spg[i, j, 2] - 0.5)^2)), 1e-4)
 end
-
-#=f = zeros(size(ps.cellid, 1), Np, 2)
-for i in axes(f, 1)
-    #xr, yr = ps.points[ps.cellid[i, 2], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
-    #xs, ys = ps.points[ps.cellid[i, 3], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
-    for j in axes(f, 2)
-        fg = a * u[i, j]
-        gg = a * u[i, j]
-        #f[i, j, :] .= [ys * fg - xs * gg, -yr * fg + xr * gg] ./ det(J[i])
-        f[i, j, :] .= inv(J[i]) * [fg, gg] #/ det(J[i])
-    end
-end # √=#
 
 function dudt!(du, u, p, t)
     du .= 0.0
