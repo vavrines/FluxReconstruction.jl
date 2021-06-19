@@ -87,7 +87,7 @@ function dudt!(du, u, p, t)
 
     fn_face = zeros(ncell, 3, deg+1, 4)
     for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:4
-        fn_face[i, j, k, l] = sum(f_face[i, j, k, l, :] .* n[j])
+        fn_face[i, j, k, l] = dot(f_face[i, j, k, l, :], n[j])
     end
 
     fn_interaction = zeros(ncell, 3, deg+1, 4)
@@ -115,9 +115,43 @@ function dudt!(du, u, p, t)
         end
 
         fwns = [sum(fws_rs[idx, :] .* n[j]) for idx in 1:4]
+        #fwns = [sum(fws_rs[idx, :]) for idx in 1:4]
 
         fn_interaction[i, j, k, :] .= fwns
     end=#
+#=
+    for i = 1:ncell, j = 1:3, k = 1:deg+1
+        uL = local_frame(u_face[i, j, k, :], 1., 0.)
+        uD = local_frame(u_face[i, j, k, :], 0., 1.)
+
+        ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
+
+        fw1_local = zeros(4)
+        fw2_local = zeros(4)
+        if ni > 0
+            uR = local_frame(u_face[ni, nj, nk, :], 1., 0.)
+            uU = local_frame(u_face[ni, nj, nk, :], 0., 1.)
+
+            flux_hll!(fw1_local, uL, uR, γ, 1.0)
+            flux_hll!(fw2_local, uD, uU, γ, 1.0)
+        end
+        fw1_global = global_frame(fw1_local, 1., 0.)
+        fw2_global = global_frame(fw2_local, 0., 1.)
+
+        fw_xy = hcat(fw1_global, fw2_global)
+
+        fw_rs = zeros(4, 2)
+        for idx in 1:4
+            fw_rs[idx, :] .= inv(J[i]) * fw_xy[idx, :]
+        end
+
+        fwns = [sum(fw_rs[idx, :] .* n[j]) for idx in 1:4]
+        #fwns = [sum(fws_rs[idx, :]) for idx in 1:4]
+
+        fn_interaction[i, j, k, :] .= fwns
+    end=#
+
+
 #=
     for i = 1:ncell, j = 1:3, k = 1:deg+1
         fw1 = zeros(4)
@@ -138,23 +172,6 @@ function dudt!(du, u, p, t)
         for l = 1:4
             fn_interaction[i, j, k, l] = sum(fi[l, :] .* n[j])
         end
-    end=#
-
-    #=for i = 1:ncell, j = 1:3, k = 1:deg+1
-        uL = local_frame(u_face[i, j, k, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
-
-        ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
-
-        if ni > 0
-            uR = local_frame(u_face[ni, nj, nk, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
-            uav = (uL + uR) ./ 2
-            ff, gg = euler_flux(uav, γ)
-            fn_interaction[i, j, k, :] .= [sum(inv(J[i]) * [ff[id], gg[id]] .* n[j]) for id = 1:4]
-        end
-
-        
-
-        
     end=#
 
 
@@ -195,14 +212,15 @@ function dudt!(du, u, p, t)
         if ps.cellType[i] == 0
             for j in 1:nsp, k in 1:4
                 rhs2[i, j, k] = - sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
-#                rhs2[i, j, k] = - sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k])) / 3
+                #rhs2[i, j, k] = - sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k])) / 3
             end
         end
     end
 
     for i = 1:ncell
         if ps.cellType[i] == 0
-            du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
+            #du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
+            du[i, :, :] .= rhs2[i, :, :]
         end
     end
 

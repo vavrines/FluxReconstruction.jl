@@ -6,7 +6,7 @@ ps = KitBase.UnstructPSpace("../assets/linesource.msh")
 
 begin
     # quadrature
-    quadratureorder = 10
+    quadratureorder = 8
     points, weights = KitBase.legendre_quadrature(quadratureorder)
     #points, triangulation = KitBase.octa_quadrature(quadratureorder)
     #weights = KitBase.quadrature_weights(points, triangulation)
@@ -61,7 +61,6 @@ for i in axes(u, 1), j in axes(u, 2)
     u[i, j, :] .= init_field(spg[i, j, 1], spg[i, j, 2])
 end
 
-
 cell_normal = zeros(ncell, 3, 2)
 for i in 1:ncell
     pids = ps.cellid[i, :]
@@ -79,10 +78,8 @@ for i in 1:ncell
     end
 end
 
-v_local = zeros(ncell, nq, 2)
-for i in 1:ncell, j in 1:nq
-    v_local[i, j, :] .= inv(J[i]) * [vs.u[j, 1], vs.u[j, 2]]
-end
+δu = heaviside.(vs.u[:, 1])
+δv = heaviside.(vs.u[:, 2])
 
 function dudt!(du, u, p, t)
     du .= 0.0
@@ -125,10 +122,12 @@ function dudt!(du, u, p, t)
                     uL = u_face[i, j, k, l]
                     uR = u_face[ni, nj, nk, l]
 
-                    vn = vs.u[l, 1] * cell_normal[i, j, 1] + vs.u[l, 2] * cell_normal[i, j, 2]
-                    δu = heaviside(vn)
+                    fx = vs.u[l, 1] * (uL * δu[l] + uR * (1.0 - δu[l]))
+                    fy = vs.u[l, 2] * (uL * δv[l] + uR * (1.0 - δv[l]))
 
-                    fn_interaction[i, j, k, l] = vn * (uL * δu + uR * (1.0 - δu))
+                    _f = inv(J[i]) * [fx, fy]
+
+                    fn_interaction[i, j, k, l] = _f .* n[j] |> sum
                 end
             else
                 fn_interaction[i, j, k, :] .= 0.0
@@ -150,16 +149,37 @@ function dudt!(du, u, p, t)
         end
     end
 
-    du .= rhs1 .+ rhs2
+    #du .= rhs1 .+ rhs2
+    for i = 1:ncell
+        if ps.cellType[i] == 0
+            du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
+        end
+    end
 
     return nothing
 end
 
 tspan = (0.0, 1.0)
 p = N
+prob = ODEProblem(dudt!, u, tspan, p)
+
+dt = 0.01
+itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+
+@showprogress for iter = 1:10
+    step!(itg)
+end
+
+
+sol = zeros(ncell)
+for i in eachindex(sol)
+    sol[i] = (vs.weights .* itg.u[i, 2, :]) |> sum
+end
+write_vtk(ps.points, ps.cellid, sol)
+
+
 
 
 
 du = zero(u)
 dudt!(du, u, p, 0.)
-
