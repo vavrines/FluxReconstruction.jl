@@ -91,7 +91,7 @@ function dudt!(du, u, p, t)
     end
 
     fn_interaction = zeros(ncell, 3, deg+1, 4)
-    #=for i = 1:ncell, j = 1:3, k = 1:deg+1
+    for i = 1:ncell, j = 1:3, k = 1:deg+1
         uL = local_frame(u_face[i, j, k, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
 
         ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
@@ -118,7 +118,7 @@ function dudt!(du, u, p, t)
         #fwns = [sum(fws_rs[idx, :]) for idx in 1:4]
 
         fn_interaction[i, j, k, :] .= fwns
-    end=#
+    end
 #=
     for i = 1:ncell, j = 1:3, k = 1:deg+1
         uL = local_frame(u_face[i, j, k, :], 1., 0.)
@@ -174,7 +174,7 @@ function dudt!(du, u, p, t)
         end
     end=#
 
-
+#=
     for i = 1:ncell, j = 1:3, k = 1:deg+1
         ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
 
@@ -195,9 +195,7 @@ function dudt!(du, u, p, t)
 
             fn_interaction[i, j, k, :] .= [sum(_f[id, :] .* n[j]) for id = 1:4]
         end
-    end
-
-
+    end=#
 
 
     rhs1 = zeros(ncell, nsp, 4)
@@ -219,8 +217,8 @@ function dudt!(du, u, p, t)
 
     for i = 1:ncell
         if ps.cellType[i] == 0
-            #du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
-            du[i, :, :] .= rhs2[i, :, :]
+            du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
+            #du[i, :, :] .= rhs2[i, :, :]
         end
     end
 
@@ -230,10 +228,10 @@ end
 tspan = (0.0, 0.1)
 p = (N, 5/3)
 prob = ODEProblem(dudt!, u0, tspan, p)
-dt = 0.001
+dt = 0.002
 itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
 
-@showprogress for iter = 1:10
+@showprogress for iter = 1:20
     step!(itg)
 end
 
