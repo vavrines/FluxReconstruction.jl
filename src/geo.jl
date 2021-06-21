@@ -357,18 +357,17 @@ Transfer coordinates (r,s) -> (a,b) in a triangle
 
 """
 function rs_ab(r::T, s::T) where {T<:Real}
-    a = ifelse(s != 0.0, 2.0 * (1.0 + r) / (1.0 - s) - 1.0, -1.0)
+    a = ifelse(s != 1.0, 2.0 * (1.0 + r) / (1.0 - s) - 1.0, -1.0)
     b = 1.0 * s
 
     return a, b
 end
 
 function rs_ab(r::AbstractVector{T}, s::AbstractVector{T}) where {T<:Real}
-    Np = length(r)
-    a = zeros(Np)
-    b = zeros(Np)
+    a = zero(r)
+    b = zero(s)
 
-    for n = 1:Np
+    for n in eachindex(a)
         a[n], b[n] = rs_ab(r[n], s[n])
     end
 
