@@ -30,6 +30,9 @@ vandermonde_matrix(N, -1e-6, -1e-6)
 
 vandermonde_matrix(N, 0., 0.)
 
+rs_ab(0, 0)
+rs_ab(-1e-6, -1e-6)
+
 
 t1 = vandermonde_matrix(N, 
 [-0.77459667, 0., 0.77459667, 0.77459667, 0., -0.77459667, -1., -1., -1.],
