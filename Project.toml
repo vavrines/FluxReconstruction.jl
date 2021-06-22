@@ -1,7 +1,7 @@
 name = "FluxRC"
 uuid = "19bbc782-a6fb-447a-8120-ff40275555e1"
 authors = ["Tianbai Xiao <tianbaixiao@gmail.com>"]
-version = "0.2.0"
+version = "0.1.0"
 
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"

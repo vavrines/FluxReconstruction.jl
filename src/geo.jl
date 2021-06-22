@@ -1,5 +1,8 @@
+abstract type AbstractStructFRSpace <: KitBase.AbstractStructPhysicalSpace end
+abstract type AbstractUnstructFRSpace <: KitBase.AbstractUnstructPhysicalSpace end
+
 """
-    struct FRPSpace1D{R,I,A,B,C} <: AbstractPhysicalSpace
+    struct FRPSpace1D{R,I,A,B,C} <: AbstractStructFRSpace
         x0::R
         x1::R
         nx::I
@@ -13,7 +16,7 @@
 1D physical space for flux reconstruction method
 
 """
-struct FRPSpace1D{R,I,A,B,C} <: AbstractPhysicalSpace
+struct FRPSpace1D{R,I,A,B,C} <: AbstractStructFRSpace
     x0::R
     x1::R
     nx::I
@@ -58,7 +61,7 @@ end
 
 
 """
-    struct FRPSpace2D{R,I,A,B,C} <: AbstractPhysicalSpace
+    struct FRPSpace2D{R,I,A,B,C} <: AbstractStructFRSpace
         x0::R
         x1::R
         nx::I
@@ -78,7 +81,7 @@ end
 2D physical space for flux reconstruction method
 
 """
-struct FRPSpace2D{R,I,A,B,C} <: AbstractPhysicalSpace
+struct FRPSpace2D{R,I,A,B,C} <: AbstractStructFRSpace
     x0::R
     x1::R
     nx::I
@@ -168,17 +171,17 @@ Unstructued physical space for flux reconstruction method
 struct UnstructFRPSpace{
     A,
     B<:AbstractMatrix{<:AbstractFloat},
-    C<:AbstractMatrix{<:Integer},
-    D<:AbstractVector{<:Integer},
+    #C<:AbstractMatrix{<:Integer},
+    #D<:AbstractVector{<:Integer},
     E<:AbstractVector{<:AbstractFloat},
     F<:AbstractArray{<:AbstractFloat,3},
     G<:Integer,
     H,
     I<:AbstractArray{<:AbstractFloat,4},
     J,
-} <: AbstractPhysicalSpace
+} <: AbstractUnstructFRSpace
     #--- general ---#
-    cells::A # all information: cell, line, vertex
+    #=cells::A # all information: cell, line, vertex
     points::B # locations of vertex points
     cellid::C # node indices of elements
     cellType::D # inner/boundary cell
@@ -191,7 +194,9 @@ struct UnstructFRPSpace{
     faceCells::C # ids of two cells around edge
     faceCenter::B # edge center location
     faceType::D # inner/boundary face
-    faceArea::E # face area
+    faceArea::E # face area=#
+
+    base::A
 
     #--- FR specific ---#
     J::H # Jacobi
@@ -215,9 +220,9 @@ end
 
 function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
     ps = UnstructPSpace(file)
-    nms = fieldnames(UnstructPSpace)
-    _p = [getfield(ps, nm) for nm in nms]
-    p = (_p...,)
+    #nms = fieldnames(UnstructPSpace)
+    #_p = [getfield(ps, nm) for nm in nms]
+    #p = (_p...,)
     
     J = rs_jacobi(ps.cellid, ps.points)
     np = (deg + 1) * (deg + 2) ÷ 2
@@ -244,7 +249,8 @@ function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
     fpn = [neighbor_fpidx([i, j, k], ps, xfg) for i = 1:ncell, j = 1:3, k = 1:deg+1]
 
     return UnstructFRPSpace(
-        p...,
+        #p...,
+        ps,
         J,
         deg,
         np,
