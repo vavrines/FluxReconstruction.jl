@@ -28,6 +28,7 @@ export tri_quadrature, triface_quadrature
 export FRPSpace1D,
        FRPSpace2D,
        UnstructFRPSpace,
+       TriFRPSpace,
        global_sp,
        global_fp,
        rs_ab,

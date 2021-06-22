@@ -165,86 +165,112 @@ end
 Unstructued physical space for flux reconstruction method
 
 """
-struct UnstructFRPSpace{A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q} <: AbstractPhysicalSpace
+struct UnstructFRPSpace{
+    A,
+    B<:AbstractMatrix{<:AbstractFloat},
+    C<:AbstractMatrix{<:Integer},
+    D<:AbstractVector{<:Integer},
+    E<:AbstractVector{<:AbstractFloat},
+    F<:AbstractArray{<:AbstractFloat,3},
+    G<:Integer,
+    H,
+    I<:AbstractArray{<:AbstractFloat,4},
+    J,
+} <: AbstractPhysicalSpace
+    #--- general ---#
     cells::A # all information: cell, line, vertex
     points::B # locations of vertex points
     cellid::C # node indices of elements
     cellType::D # inner/boundary cell
-    cellNeighbors::E # neighboring cells id
-    cellFaces::F # cell edges id
-    cellCenter::G # cell center location
-    cellArea::H # cell size
-    facePoints::I # ids of two points at edge
-    faceCells::J # ids of two cells around edge
-    faceCenter::K # edge center location
-    faceType::L
+    cellNeighbors::C # neighboring cells id
+    cellFaces::C # cell edges id
+    cellCenter::B # cell center location
+    cellArea::E # cell size
+    cellNormals::F # cell unit normal vectors
+    facePoints::C # ids of two points at edge
+    faceCells::C # ids of two cells around edge
+    faceCenter::B # edge center location
+    faceType::D # inner/boundary face
+    faceArea::E # face area
 
-    rs::M
-    np::N
-    xp::O
-    weights::P
-    dx::Q
+    #--- FR specific ---#
+    J::H # Jacobi
+    deg::G # polynomial degree
+    np::G # number of solution points
+    xpl::B # local coordinates of solution points
+    xpg::F # global coordinates of solution points
+    wp::E # weights of solution points
+    xfl::F # local coordinates of flux points
+    xfg::I # global coordinates of flux points
+    wf::B # weights of flux points
+    V::B # Vandermonde matrix
+    ψf::F # Vandermonde matrix along faces
+    Vr::B # ∂V/∂r
+    Vs::B # ∂V/∂s
+    ∂l::F # ∇l
+    lf::F # Lagrange polynomials along faces
+    ϕ::F # correction field
+    fpn::J # adjacent flux points index in neighbor cell
 end
 
-function UnstructFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
-    cells, points = KitBase.read_mesh(file)
-    cellid = KitBase.extract_cell(cells)
-    edgePoints, edgeCells, cellNeighbors = KitBase.mesh_connectivity_2D(cellid)
-    cellType = KitBase.mesh_cell_type(cellNeighbors)
-    cellArea = KitBase.mesh_area_2D(points, cellid)
-    cellCenter = KitBase.mesh_center_2D(points, cellid)
-    edgeCenter = KitBase.mesh_face_center(points, edgePoints)
-    cellEdges = KitBase.mesh_cell_face(cellid, edgeCells)
-    edgeType = KitBase.mesh_face_type(edgeCells, cellType)
+function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
+    ps = UnstructPSpace(file)
+    nms = fieldnames(UnstructPSpace)
+    _p = [getfield(ps, nm) for nm in nms]
+    p = (_p...,)
+    
+    J = rs_jacobi(ps.cellid, ps.points)
+    np = (deg + 1) * (deg + 2) ÷ 2
+    xpl, wp = tri_quadrature(deg)
+    V = vandermonde_matrix(deg, xpl[:, 1], xpl[:, 2])
+    Vr, Vs = ∂vandermonde_matrix(deg, xpl[:, 1], xpl[:, 2]) 
+    ∂l = ∂lagrange(V, Vr, Vs)
+    ϕ = correction_field(deg, V)
 
-    np = (deg+1) * (deg+2) ÷ 2
-    rs, weights = tri_quadrature(deg)
-    xp = global_sp(points, cellid, rs)
-    dx = [[
-        point_distance(
-            cellCenter[i, :],
-            points[cellid[i, 1], :],
-            points[cellid[i, 2], :],
-        ),
-        point_distance(
-            cellCenter[i, :],
-            points[cellid[i, 2], :],
-            points[cellid[i, 3], :],
-        ),
-        point_distance(
-            cellCenter[i, :],
-            points[cellid[i, 3], :],
-            points[cellid[i, 1], :],
-        ),
-    ] for i in axes(cellid, 1)]
+    xfl, wf = triface_quadrature(deg)
+    ψf = zeros(3, deg+1, np)
+    for i = 1:3
+        ψf[i, :, :] .= vandermonde_matrix(deg, xfl[i, :, 1], xfl[i, :, 2])
+    end
+
+    lf = zeros(3, deg+1, np)
+    for i = 1:3, j = 1:deg+1
+        lf[i, j, :] .= V' \ ψf[i, j, :]
+    end
+
+    xpg = global_sp(ps.points, ps.cellid, deg)
+    xfg = global_fp(ps.points, ps.cellid, deg)
+    ncell = size(ps.cellid, 1)
+    fpn = [neighbor_fpidx([i, j, k], ps, xfg) for i = 1:ncell, j = 1:3, k = 1:deg+1]
 
     return UnstructFRPSpace(
-        cells,
-        points,
-        cellid,
-        cellType,
-        cellNeighbors,
-        cellEdges,
-        cellCenter,
-        cellArea,
-        edgePoints,
-        edgeCells,
-        edgeCenter,
-        edgeType,
-        rs,
+        p...,
+        J,
+        deg,
         np,
-        xp,
-        weights,
-        dx,
+        xpl,
+        xpg,
+        wp,
+        xfl,
+        xfg,
+        wf,
+        V,
+        ψf,
+        Vr,
+        Vs,
+        ∂l,
+        lf,
+        ϕ,
+        fpn,
     )
 end
 
 
 """
-Calculate global location of solution points
+Calculate global coordinates of solution points
 
 """
-function global_sp(xi::AbstractArray{<:Real,1}, r::AbstractArray{<:Real,1})
+function global_sp(xi::AbstractVector{T}, r::AbstractVector{T}) where {T<:Real}
     xsp = similar(xi, first(eachindex(xi)):last(eachindex(xi))-1, length(r))
     for i in axes(xsp, 1), j in axes(r, 1)
         xsp[i, j] = ((1.0 - r[j]) / 2.0) * xi[i] + ((1.0 + r[j]) / 2.0) * xi[i+1]
