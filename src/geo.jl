@@ -170,18 +170,18 @@ Unstructued physical space for flux reconstruction method
 """
 struct UnstructFRPSpace{
     A,
-    B<:AbstractMatrix{<:AbstractFloat},
-    #C<:AbstractMatrix{<:Integer},
-    #D<:AbstractVector{<:Integer},
-    E<:AbstractVector{<:AbstractFloat},
-    F<:AbstractArray{<:AbstractFloat,3},
-    G<:Integer,
     H,
+    G<:Integer,
+    B<:AbstractMatrix{<:AbstractFloat},
+    F<:AbstractArray{<:AbstractFloat,3},
+    E<:AbstractVector{<:AbstractFloat},
     I<:AbstractArray{<:AbstractFloat,4},
     J,
 } <: AbstractUnstructFRSpace
     #--- general ---#
-    #=cells::A # all information: cell, line, vertex
+    base::A # basic unstructured mesh info that contains:
+    #=
+    cells::A # all information: cell, line, vertex
     points::B # locations of vertex points
     cellid::C # node indices of elements
     cellType::D # inner/boundary cell
@@ -194,9 +194,8 @@ struct UnstructFRPSpace{
     faceCells::C # ids of two cells around edge
     faceCenter::B # edge center location
     faceType::D # inner/boundary face
-    faceArea::E # face area=#
-
-    base::A
+    faceArea::E # face area
+    =#
 
     #--- FR specific ---#
     J::H # Jacobi
@@ -220,9 +219,6 @@ end
 
 function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
     ps = UnstructPSpace(file)
-    #nms = fieldnames(UnstructPSpace)
-    #_p = [getfield(ps, nm) for nm in nms]
-    #p = (_p...,)
     
     J = rs_jacobi(ps.cellid, ps.points)
     np = (deg + 1) * (deg + 2) ÷ 2
@@ -249,7 +245,6 @@ function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
     fpn = [neighbor_fpidx([i, j, k], ps, xfg) for i = 1:ncell, j = 1:3, k = 1:deg+1]
 
     return UnstructFRPSpace(
-        #p...,
         ps,
         J,
         deg,
