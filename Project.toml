@@ -21,6 +21,7 @@ TerminalLoggers = "5d786b92-1e48-4d6f-9151-6b4477ca9bed"
 [compat]
 BSON = "0.3"
 Conda = "^1"
+DataFrames = "1"
 GSL = "^1"
 Jacobi = "0.5"
 KitBase = "0.6"
