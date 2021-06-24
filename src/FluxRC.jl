@@ -1,7 +1,6 @@
 module FluxRC
 
 using GSL
-using Jacobi
 using LinearAlgebra
 using PyCall
 using Statistics
