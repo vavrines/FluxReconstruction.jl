@@ -16,46 +16,67 @@ abstract type AbstractUnstructFRSpace <: KitBase.AbstractUnstructPhysicalSpace e
 1D physical space for flux reconstruction method
 
 """
-struct FRPSpace1D{R,I,A,B,C} <: AbstractStructFRSpace
-    x0::R
-    x1::R
-    nx::I
-    r::A
+struct FRPSpace1D{
+    A,
+    I<:Integer,
+    B<:AbstractVector{<:AbstractFloat},
+    C<:AbstractMatrix{<:AbstractFloat},
+} <: AbstractStructFRSpace
+    base::A
+
+    deg::I
+    J::B
     np::I
-    xp::B
-    x::C
-    dx::C    
+
+    xpl::B
+    xpg::C
+    wp::B
+  
+    dl::C
+    ll::B
+    lr::B
+    dhl::B
+    dhr::B
 end
 
 function FRPSpace1D(
     x0::Real,
     x1::Real,
     nx::Integer,
-    np::Integer,
+    deg::Integer,
     ng = 0::Integer,
 )
-    δ = (x1 - x0) / nx
-    xc = OffsetArray{Float64}(undef, 1-ng:nx+ng)
-    dx = similar(xc)
+    ps = PSpace1D(x0, x1, nx, ng)
+    J = [0.5 * ps.dx[i] for i in eachindex(ps.dx)]
 
-    for i in eachindex(xc)
-        xc[i] = x0 + (i - 0.5) * δ
-        dx[i] = δ
-    end
-
-    r = legendre_point(np)
-    xi = push!(xc - 0.5 * dx, xc[end] + 0.5 * dx[end])
+    r = legendre_point(deg)
+    xi = push!(ps.x - 0.5 * ps.dx, ps.x[end] + 0.5 * ps.dx[end])
     xp = global_sp(xi, r)
+    wp = gausslegendre(deg + 1)[2]
 
-    return FRPSpace1D{typeof(x0),typeof(nx),typeof(r),typeof(xp),typeof(xc)}(
-        x0,
-        x1,
-        nx,
+    ll = lagrange_point(r, -1.0)
+    lr = lagrange_point(r, 1.0)
+    lpdm = ∂lagrange(r)
+    dhl, dhr = ∂radau(deg, r)
+
+    return FRPSpace1D{
+        typeof(ps),
+        typeof(deg),
+        typeof(J),
+        typeof(xp),
+    }(
+        ps,
+        deg,
+        J,
+        deg + 1,
         r,
-        np,
         xp,
-        xc,
-        dx,
+        wp,
+        lpdm,
+        ll,
+        lr,
+        dhl,
+        dhr,
     )
 end
 
