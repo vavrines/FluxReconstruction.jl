@@ -144,7 +144,7 @@ sol = solve(
     progress_name = "frode",
     #autodiff = false,
 )
-prob = remake(prob, u0=sol.u[end], p=p, t=tspan)
+prob = remake(prob, u0 = sol.u[end], p = p, t = tspan)
 
 #--- post process ---#
 plot(xsp[:, 2], u[:, 2])
@@ -153,5 +153,5 @@ begin
     for i = 1:nx, j = 1:nsp
         ρ[i, j] = moments_conserve(sol.u[end][i, :, j], vspace.u, vspace.weights)[1]
     end
-    plot!(xsp[:, 2], ρ[:, 2])    
+    plot!(xsp[:, 2], ρ[:, 2])
 end

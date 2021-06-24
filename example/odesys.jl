@@ -68,16 +68,16 @@ function mol!(du, u, p, t) # method of lines
 
     ncell = size(u, 1)
     nsp = size(u, 2)
-    
+
     f = zeros(ncell, nsp)
-    for i in 1:ncell, j in 1:nsp
+    for i = 1:ncell, j = 1:nsp
         J = (xFace[i+1] - xFace[i]) / 2.0
         f[i, j] = advection_flux(u[i, j], a) / J
     end
 
     u_face = zeros(ncell, nsp)
     f_face = zeros(ncell, nsp)
-    for i in 1:ncell, j in 1:nsp
+    for i = 1:ncell, j = 1:nsp
         # right face of element i
         u_face[i, 1] += u[i, j] * lr[j]
         f_face[i, 1] += f[i, j] * lr[j]
@@ -109,7 +109,7 @@ function mol!(du, u, p, t) # method of lines
         rhs1[i, ppp1] += f[i, k] * lpdm[ppp1, k]
     end
 
-    for i in 1:ncell, ppp1 in 1:nsp
+    for i = 1:ncell, ppp1 = 1:nsp
         du[i, ppp1] =
             -(
                 rhs1[i, ppp1] +
@@ -122,7 +122,7 @@ end
 tspan = (0.0, 2.0)
 p = (xFace, e2f, f2e, a, deg, ll, lr, lpdm)
 prob = ODEProblem(mol!, u, tspan, p)
-sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8, progress=true)
+sol = solve(prob, Tsit5(), reltol = 1e-8, abstol = 1e-8, progress = true)
 
 using Plots
 plot(xsp[:, 2], sol.u[end][:, 2], label = "t=2")

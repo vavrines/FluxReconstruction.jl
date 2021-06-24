@@ -41,9 +41,9 @@ function tri_quadrature(
 
         return scheme.points, scheme.weights
     """
-    
+
     # trilinear coordinates (三线坐标)
-    points0, weights = py"create_quadrature"(deg+1) 
+    points0, weights = py"create_quadrature"(deg + 1)
 
     # cartesian coordinates of vertices
     p1, p2, p3 = vertices
@@ -84,19 +84,19 @@ Face 2 is assumed to be hypotenuse
 """
 function triface_quadrature(N)
     Δf = [1.0, √2, 1.0]
-    
-    pf = Array{Float64}(undef, 3, N+1, 2)
-    wf = Array{Float64}(undef, 3, N+1)
-    
-    p0, w0 = gausslegendre(N+1)
-    
+
+    pf = Array{Float64}(undef, 3, N + 1, 2)
+    wf = Array{Float64}(undef, 3, N + 1)
+
+    p0, w0 = gausslegendre(N + 1)
+
     pf[1, :, 1] .= p0
     pf[2, :, 1] .= p0[end:-1:1]
     pf[3, :, 1] .= -1.0
     pf[1, :, 2] .= -1.0
     pf[2, :, 2] .= p0
     pf[3, :, 2] .= p0[end:-1:1]
-    
+
     wf[1, :] .= w0 .* Δf[1]
     wf[2, :] .= w0 .* Δf[2]
     wf[3, :] .= w0 .* Δf[3]

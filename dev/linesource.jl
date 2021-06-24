@@ -40,18 +40,18 @@ fpg = global_fp(ps.points, ps.cellid, N)
 pl, wl = tri_quadrature(N)
 
 V = vandermonde_matrix(N, pl[:, 1], pl[:, 2])
-Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2]) 
+Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2])
 ∂l = ∂lagrange(V, Vr, Vs)
 
 ϕ = correction_field(N, V)
 
 pf, wf = triface_quadrature(N)
-ψf = zeros(3, N+1, Np)
+ψf = zeros(3, N + 1, Np)
 for i = 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
-lf = zeros(3, N+1, Np)
+lf = zeros(3, N + 1, Np)
 for i = 1:3, j = 1:N+1
     lf[i, j, :] .= V' \ ψf[i, j, :]
 end
@@ -62,14 +62,19 @@ for i in axes(u, 1), j in axes(u, 2)
 end
 
 cell_normal = zeros(ncell, 3, 2)
-for i in 1:ncell
+for i = 1:ncell
     pids = ps.cellid[i, :]
 
     cell_normal[i, 1, :] .= unit_normal(ps.points[pids[1], :], ps.points[pids[2], :])
     cell_normal[i, 2, :] .= unit_normal(ps.points[pids[2], :], ps.points[pids[3], :])
     cell_normal[i, 3, :] .= unit_normal(ps.points[pids[3], :], ps.points[pids[1], :])
 
-    p = [ps.points[pids[1], :] .+ ps.points[pids[2], :], ps.points[pids[2], :] .+ ps.points[pids[3], :], ps.points[pids[3], :] .+ ps.points[pids[1], :]] / 2
+    p =
+        [
+            ps.points[pids[1], :] .+ ps.points[pids[2], :],
+            ps.points[pids[2], :] .+ ps.points[pids[3], :],
+            ps.points[pids[3], :] .+ ps.points[pids[1], :],
+        ] / 2
 
     for j = 1:3
         if dot(cell_normal[i, j, :], p[j][1:2] - ps.cellCenter[i, 1:2]) < 0
@@ -88,7 +93,7 @@ function dudt!(du, u, p, t)
     ncell = size(u, 1)
     nsp = size(u, 2)
     nq = size(u, 3)
-    
+
     f = zeros(ncell, nsp, nq, 2)
     for i in axes(f, 1)
         for j in axes(f, 2), k in axes(f, 3)
@@ -98,27 +103,27 @@ function dudt!(du, u, p, t)
         end
     end
 
-    u_face = zeros(ncell, 3, deg+1, nq)
-    f_face = zeros(ncell, 3, deg+1, nq, 2)
-    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:nq
+    u_face = zeros(ncell, 3, deg + 1, nq)
+    f_face = zeros(ncell, 3, deg + 1, nq, 2)
+    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:nq
         u_face[i, j, k, l] = sum(u[i, :, l] .* lf[j, k, :])
         f_face[i, j, k, l, 1] = sum(f[i, :, l, 1] .* lf[j, k, :])
         f_face[i, j, k, l, 2] = sum(f[i, :, l, 2] .* lf[j, k, :])
     end
 
-    n = [[0.0, -1.0], [1/√2, 1/√2], [-1.0, 0.0]]
+    n = [[0.0, -1.0], [1 / √2, 1 / √2], [-1.0, 0.0]]
 
-    fn_face = zeros(ncell, 3, deg+1, nq)
-    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:nq
+    fn_face = zeros(ncell, 3, deg + 1, nq)
+    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:nq
         fn_face[i, j, k, l] = sum(f_face[i, j, k, l, :] .* n[j])
     end
 
-    fn_interaction = zeros(ncell, 3, deg+1, nq)
-    for i in 1:ncell
-        for j in 1:3, k in 1:deg+1
+    fn_interaction = zeros(ncell, 3, deg + 1, nq)
+    for i = 1:ncell
+        for j = 1:3, k = 1:deg+1
             ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
             if ni > 0
-                for l in 1:nq
+                for l = 1:nq
                     uL = u_face[i, j, k, l]
                     uR = u_face[ni, nj, nk, l]
 
@@ -136,15 +141,17 @@ function dudt!(du, u, p, t)
     end
 
     rhs1 = zeros(ncell, nsp, nq)
-    for i in axes(rhs1, 1), j in axes(rhs1, 2), k in 1:nq
-        rhs1[i, j, nq] = -sum(f[i, :, nq, 1] .* ∂l[j, :, 1]) - sum(f[i, :, nq, 2] .* ∂l[j, :, 2])
+    for i in axes(rhs1, 1), j in axes(rhs1, 2), k = 1:nq
+        rhs1[i, j, nq] =
+            -sum(f[i, :, nq, 1] .* ∂l[j, :, 1]) - sum(f[i, :, nq, 2] .* ∂l[j, :, 2])
     end
 
     rhs2 = zero(rhs1)
-    for i in 1:ncell, k = 1:nq
+    for i = 1:ncell, k = 1:nq
         if ps.cellType[i] != 1
-            for j in 1:nsp
-                rhs2[i, j, k] = - sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
+            for j = 1:nsp
+                rhs2[i, j, k] =
+                    -sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
             end
         end
     end
@@ -182,4 +189,4 @@ write_vtk(ps.points, ps.cellid, sol)
 
 
 du = zero(u)
-dudt!(du, u, p, 0.)
+dudt!(du, u, p, 0.0)

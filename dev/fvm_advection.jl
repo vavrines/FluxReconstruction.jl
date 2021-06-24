@@ -12,19 +12,27 @@ ay = -1.0
 
 u = zeros(size(ps.cellid, 1))
 for i in axes(u, 1)
-    u[i] = max(exp(-300 * ((ps.cellCenter[i, 1] - 0.5)^2 + (ps.cellCenter[i, 2] - 0.5)^2)), 1e-4)
+    u[i] = max(
+        exp(-300 * ((ps.cellCenter[i, 1] - 0.5)^2 + (ps.cellCenter[i, 2] - 0.5)^2)),
+        1e-4,
+    )
 end
 u0 = deepcopy(u)
 
 cell_normal = zeros(ncell, 3, 2)
-for i in 1:ncell
+for i = 1:ncell
     pids = ps.cellid[i, :]
 
     cell_normal[i, 1, :] .= unit_normal(ps.points[pids[1], :], ps.points[pids[2], :])
     cell_normal[i, 2, :] .= unit_normal(ps.points[pids[2], :], ps.points[pids[3], :])
     cell_normal[i, 3, :] .= unit_normal(ps.points[pids[3], :], ps.points[pids[1], :])
 
-    p = [ps.points[pids[1], :] .+ ps.points[pids[2], :], ps.points[pids[2], :] .+ ps.points[pids[3], :], ps.points[pids[3], :] .+ ps.points[pids[1], :]] / 2
+    p =
+        [
+            ps.points[pids[1], :] .+ ps.points[pids[2], :],
+            ps.points[pids[2], :] .+ ps.points[pids[3], :],
+            ps.points[pids[3], :] .+ ps.points[pids[1], :],
+        ] / 2
 
     for j = 1:3
         if dot(cell_normal[i, j, :], p[j][1:2] - ps.cellCenter[i, 1:2]) < 0
@@ -34,12 +42,12 @@ for i in 1:ncell
 end
 
 cell_length = zeros(ncell, 3)
-for i in 1:ncell
+for i = 1:ncell
     pids = ps.cellid[i, :]
     cids = ps.cellNeighbors[i, :]
 
-    for j in 1:3
-        if cids[j] >0
+    for j = 1:3
+        if cids[j] > 0
             nodes = intersect(pids, ps.cellid[cids[j], :])
             cell_length[i, j] = norm(ps.points[nodes[1], 1:2] - ps.points[nodes[2], 1:2])
         end
@@ -73,11 +81,12 @@ function dudt!(du, u, p, t)
             fa2 = flux_ad(f[i, :], f2, u[i], u2)
             fa3 = flux_ad(f[i, :], f3, u[i], u3)
 
-            du[i] = -(
-                dot(fa1, cell_normal[i, 1, :]) * cell_length[i, 1] + 
-                dot(fa2, cell_normal[i, 2, :]) * cell_length[i, 2] + 
-                dot(fa3, cell_normal[i, 3, :]) * cell_length[i, 3]
-            )
+            du[i] =
+                -(
+                    dot(fa1, cell_normal[i, 1, :]) * cell_length[i, 1] +
+                    dot(fa2, cell_normal[i, 2, :]) * cell_length[i, 2] +
+                    dot(fa3, cell_normal[i, 3, :]) * cell_length[i, 3]
+                )
 
             du[i] /= ps.cellArea[i]
         end

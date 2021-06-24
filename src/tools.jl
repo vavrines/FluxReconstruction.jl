@@ -18,12 +18,12 @@ function Base.getproperty(x::AbstractUnstructFRSpace, name::Symbol)
     end
 end
 
-function Base.propertynames(x::AbstractStructFRSpace, private::Bool=false)
+function Base.propertynames(x::AbstractStructFRSpace, private::Bool = false)
     public = fieldnames(typeof(x))
     true ? ((public ∪ union(fieldnames(PSpace1D), fieldnames(PSpace2D)))...,) : public
 end
 
-function Base.propertynames(x::AbstractUnstructFRSpace, private::Bool=false)
+function Base.propertynames(x::AbstractUnstructFRSpace, private::Bool = false)
     public = fieldnames(typeof(x))
     true ? ((public ∪ fieldnames(UnstructPSpace))...,) : public
 end

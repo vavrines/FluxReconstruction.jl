@@ -44,22 +44,22 @@ function dudt!(du, u, p, t)
         end
     end
 
-    u_face = zeros(ncell, 3, deg+1, 4)
-    f_face = zeros(ncell, 3, deg+1, 4, 2)
-    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:4
+    u_face = zeros(ncell, 3, deg + 1, 4)
+    f_face = zeros(ncell, 3, deg + 1, 4, 2)
+    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:4
         u_face[i, j, k, l] = sum(u[i, :, l] .* lf[j, k, :])
         f_face[i, j, k, l, 1] = sum(f[i, :, l, 1] .* lf[j, k, :])
         f_face[i, j, k, l, 2] = sum(f[i, :, l, 2] .* lf[j, k, :])
     end
 
-    n = [[0.0, -1.0], [1/√2, 1/√2], [-1.0, 0.0]]
+    n = [[0.0, -1.0], [1 / √2, 1 / √2], [-1.0, 0.0]]
 
-    fn_face = zeros(ncell, 3, deg+1, 4)
-    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:4
+    fn_face = zeros(ncell, 3, deg + 1, 4)
+    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:4
         fn_face[i, j, k, l] = dot(f_face[i, j, k, l, :], n[j])
     end
 
-    fn_interaction = zeros(ncell, 3, deg+1, 4)
+    fn_interaction = zeros(ncell, 3, deg + 1, 4)
     for i = 1:ncell, j = 1:3, k = 1:deg+1
         uL = local_frame(u_face[i, j, k, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
 
@@ -67,7 +67,11 @@ function dudt!(du, u, p, t)
 
         fwn_local = zeros(4)
         if ni > 0
-            uR = local_frame(u_face[ni, nj, nk, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
+            uR = local_frame(
+                u_face[ni, nj, nk, :],
+                cell_normal[i, j, 1],
+                cell_normal[i, j, 2],
+            )
             flux_hll!(fwn_local, uL, uR, γ, 1.0)
         elseif cellType[i] == 2
             _uR = u_face[i, j, k, :]
@@ -78,31 +82,33 @@ function dudt!(du, u, p, t)
         fwn_global = global_frame(fwn_local, cell_normal[i, j, 1], cell_normal[i, j, 2])
 
         fwn_xy = zeros(4, 2)
-        for idx in 1:4
+        for idx = 1:4
             fwn_xy[idx, :] .= fwn_global[idx] .* cell_normal[i, j, :]
         end
 
         fws_rs = zeros(4, 2)
-        for idx in 1:4
+        for idx = 1:4
             fws_rs[idx, :] .= inv(J[i]) * fwn_xy[idx, :]
         end
 
-        fwns = [sum(fws_rs[idx, :] .* n[j]) for idx in 1:4]
+        fwns = [sum(fws_rs[idx, :] .* n[j]) for idx = 1:4]
         #fwns = [sum(fws_rs[idx, :]) for idx in 1:4]
 
         fn_interaction[i, j, k, :] .= fwns
     end
 
     rhs1 = zeros(ncell, nsp, 4)
-    for i in axes(rhs1, 1), j in axes(rhs1, 2), k in 1:4
-        rhs1[i, j, k] = -sum(f[i, :, k, 1] .* ∂l[j, :, 1]) - sum(f[i, :, k, 2] .* ∂l[j, :, 2])
+    for i in axes(rhs1, 1), j in axes(rhs1, 2), k = 1:4
+        rhs1[i, j, k] =
+            -sum(f[i, :, k, 1] .* ∂l[j, :, 1]) - sum(f[i, :, k, 2] .* ∂l[j, :, 2])
     end
 
     rhs2 = zero(rhs1)
-    for i in 1:ncell
+    for i = 1:ncell
         if ps.cellType[i] ∈ [0, 2]
-            for j in 1:nsp, k in 1:4
-                rhs2[i, j, k] = - sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
+            for j = 1:nsp, k = 1:4
+                rhs2[i, j, k] =
+                    -sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
             end
         end
     end

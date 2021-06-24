@@ -35,19 +35,19 @@ u .* ∂l[1, :, 2] |> sum
 # interface interpolation
 function triface_quadrature(N)
     Δf = [1.0, √2, 1.0]
-    
-    pf = Array{Float64}(undef, 3, N+1, 2)
-    wf = Array{Float64}(undef, 3, N+1)
-    
-    p0, w0 = gausslegendre(N+1)
-    
+
+    pf = Array{Float64}(undef, 3, N + 1, 2)
+    wf = Array{Float64}(undef, 3, N + 1)
+
+    p0, w0 = gausslegendre(N + 1)
+
     pf[1, :, 1] .= p0
     pf[2, :, 1] .= p0
     pf[3, :, 1] .= -1.0
     pf[1, :, 2] .= -1.0
     pf[2, :, 2] .= -p0
     pf[3, :, 2] .= p0
-    
+
     wf[1, :] .= w0 .* Δf[1]
     wf[2, :] .= w0 .* Δf[2]
     wf[3, :] .= w0 .* Δf[3]
@@ -57,17 +57,17 @@ end
 
 pf, wf = triface_quadrature(N)
 
-ψf = zeros(3, N+1, Np)
+ψf = zeros(3, N + 1, Np)
 for i = 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
-∂ψf = zeros(3, N+1, Np, 2)
+∂ψf = zeros(3, N + 1, Np, 2)
 for i = 1:3
     ∂ψf[i, :, :, 1], ∂ψf[i, :, :, 2] = ∂vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
-lf = zeros(3, N+1, Np)
+lf = zeros(3, N + 1, Np)
 for i = 1:3, j = 1:N+1
     lf[i, j, :] .= V' \ ψf[i, j, :]
 end
@@ -75,7 +75,7 @@ end
 u .* lf[2, 2, :] |> sum
 uhat .* ψf[2, 2, :] |> sum
 
-∂lf = zeros(3, N+1, Np, 2)
+∂lf = zeros(3, N + 1, Np, 2)
 for i = 1:3, j = 1:N+1, k = 1:2
     ∂lf[i, j, :, k] .= V' \ ∂ψf[i, j, :, k]
 end
@@ -84,8 +84,8 @@ uhat .* ∂ψf[1, 2, :, 1] |> sum
 u .* ∂lf[1, 2, :, 1] |> sum
 
 # correction field
-ϕ = zeros(3, N+1)
-σ = zeros(3, N+1, Np)
+ϕ = zeros(3, N + 1)
+σ = zeros(3, N + 1, Np)
 
 for k = 1:Np
     for j = 1:N+1

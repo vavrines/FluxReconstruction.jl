@@ -37,7 +37,7 @@ for i = 1:nx, ppp1 = 1:nsp
     _ρ = 1.0 + 0.1 * sin(2.0 * π * ps.xp[i, ppp1])
     _T = 2 * 0.5 / _ρ
 
-    f0[i, :, ppp1] .= maxwellian(vs.u, [_ρ, 1.0, 1.0/_T])
+    f0[i, :, ppp1] .= maxwellian(vs.u, [_ρ, 1.0, 1.0 / _T])
 end
 
 e2f = zeros(Int, nx, 2)
@@ -103,7 +103,8 @@ function mol!(du, u, p, t)
 
     f_interaction = similar(u, nface, nu)
     for i = 1:nface
-        @. f_interaction[i, :] = f_face[f2e[i, 1], :, 1] * (1.0 - δ) + f_face[f2e[i, 2], :, 2] * δ
+        @. f_interaction[i, :] =
+            f_face[f2e[i, 1], :, 1] * (1.0 - δ) + f_face[f2e[i, 2], :, 2] * δ
     end
 
     rhs1 = zeros(eltype(u), ncell, nu, nsp)
@@ -166,7 +167,11 @@ begin
 
             w[idx, :] .= moments_conserve(sol.u[end][i, :, j], vs.u, vs.weights)
             prim[idx, :] .= conserve_prim(w[idx, :], 3.0)
-            prim0[idx, :] .= [1.0 + 0.1 * sin(2.0 * π * x[idx]), 1.0, 2 * 0.5 / (1.0 + 0.1 * sin(2.0 * π * x[idx]))]
+            prim0[idx, :] .= [
+                1.0 + 0.1 * sin(2.0 * π * x[idx]),
+                1.0,
+                2 * 0.5 / (1.0 + 0.1 * sin(2.0 * π * x[idx])),
+            ]
         end
     end
 end
@@ -175,5 +180,5 @@ end
 #FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
 #FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
 
-plot(x, prim0[:, 1], label="t=0")
-plot!(x[1:end], prim[1:end, 1], label="t=1")
+plot(x, prim0[:, 1], label = "t=0")
+plot!(x[1:end], prim[1:end, 1], label = "t=1")

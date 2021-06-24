@@ -34,7 +34,8 @@ function bgk!(du, u, p, t)
 
     f_interaction = similar(u, nface, nu)
     for i = 1:nface
-        @. f_interaction[i, :] = f_face[f2e[i, 1], :, 1] * (1.0 - δ) + f_face[f2e[i, 2], :, 2] * δ
+        @. f_interaction[i, :] =
+            f_face[f2e[i, 1], :, 1] * (1.0 - δ) + f_face[f2e[i, 2], :, 2] * δ
     end
 
     rhs1 = zeros(eltype(u), ncell, nu, nsp)
