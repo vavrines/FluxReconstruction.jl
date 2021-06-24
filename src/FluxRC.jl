@@ -3,7 +3,6 @@ module FluxRC
 using GSL
 using LinearAlgebra
 using PyCall
-using Statistics
 using KitBase
 using KitBase.FastGaussQuadrature
 using KitBase.OffsetArrays

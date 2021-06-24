@@ -14,7 +14,7 @@ begin
     a = 1.0
 end
 
-pspace = FR.FRPSpace1D(x0, x1, ncell, deg)
+pspace = FRPSpace1D(x0, x1, ncell, deg)
 
 begin
     xFace = collect(x0:dx:x1)
