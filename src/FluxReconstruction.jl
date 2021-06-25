@@ -1,4 +1,6 @@
-module FluxRC
+module FluxReconstruction
+
+const FR = FluxReconstruction
 
 using GSL
 using LinearAlgebra
@@ -8,6 +10,7 @@ using KitBase.FastGaussQuadrature
 using KitBase.OffsetArrays
 using KitBase.SpecialFunctions
 
+export FR
 export L1_error, L2_error, L∞_error
 export legendre_point,
        lagrange_point,

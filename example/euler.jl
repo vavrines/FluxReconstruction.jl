@@ -1,4 +1,4 @@
-using KitBase, FluxRC, OrdinaryDiffEq, LinearAlgebra, Plots
+using KitBase, FluxReconstruction, OrdinaryDiffEq, LinearAlgebra, Plots
 using ProgressMeter: @showprogress
 
 begin

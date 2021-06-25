@@ -1,4 +1,4 @@
-name = "FluxRC"
+name = "FluxReconstruction"
 uuid = "19bbc782-a6fb-447a-8120-ff40275555e1"
 authors = ["Tianbai Xiao <tianbaixiao@gmail.com>"]
 version = "0.1.0"
