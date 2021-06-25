@@ -4,6 +4,7 @@ const FR = FluxReconstruction
 
 using GSL
 using LinearAlgebra
+using OrdinaryDiffEq
 using PyCall
 using KitBase
 using KitBase.FastGaussQuadrature
@@ -37,8 +38,9 @@ export FRPSpace1D,
        rs_xy,
        rs_jacobi,
        neighbor_fpidx
-export interp_interface!
+export interp_face!
 export poly_derivative!
+export FREulerProblem
 
 include("data.jl")
 include("math.jl")
@@ -49,6 +51,7 @@ include("geo.jl")
 include("tools.jl")
 include("interpolate.jl")
 include("derivative.jl")
+include("equation.jl")
 include("integrator.jl")
 
 end

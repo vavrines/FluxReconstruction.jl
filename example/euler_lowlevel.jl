@@ -13,7 +13,6 @@ begin
     dt = cfl * dx
     t = 0.0
 end
-
 ps = FRPSpace1D(x0, x1, ncell, deg)
 
 u = zeros(ncell, nsp, 3)

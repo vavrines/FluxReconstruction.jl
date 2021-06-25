@@ -1,4 +1,4 @@
-function interp_interface!(
+function interp_face!(
     fδ,
     f::T,
     ll::T1,
@@ -8,13 +8,13 @@ function interp_interface!(
     fδ[2] = dot(f, lr)
 end
 
-function interp_interface!(
+function interp_face!(
     fδ,
     f::T,
     ll::T1,
     lr::T1,
 ) where {T<:AbstractMatrix,T1<:AbstractVector}
     @views for i in axes(f, 1)
-        interp_interface!(fδ[i, :], f[i, :], ll, lr)
+        interp_face!(fδ[i, :], f[i, :], ll, lr)
     end
 end
