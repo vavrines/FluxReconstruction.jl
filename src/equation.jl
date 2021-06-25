@@ -5,9 +5,10 @@ function FREulerProblem(u::AbstractTensor3, tspan, ps::AbstractStructFRSpace, γ
     ncell = size(u, 3)
     u_face = zeros(3, 2, ncell)
     f_face = zeros(3, 2, ncell)
-    f_interaction = zeros(3, ncell+1)
-    
-    p = (f,
+    f_interaction = zeros(3, ncell + 1)
+
+    p = (
+        f,
         u_face,
         f_face,
         f_interaction,
@@ -18,7 +19,8 @@ function FREulerProblem(u::AbstractTensor3, tspan, ps::AbstractStructFRSpace, γ
         ps.dl,
         ps.dhl,
         ps.dhr,
-        γ)
+        γ,
+    )
 
     return ODEProblem(frode_euler!, u, tspan, p)
 end
@@ -26,12 +28,11 @@ end
 
 function frode_euler!(du::AbstractTensor3, u, p, t)
     du .= 0.0
-    f, u_face, f_face, f_interaction, rhs1,
-    J, ll, lr, lpdm, dgl, dgr, γ = p
+    f, u_face, f_face, f_interaction, rhs1, J, ll, lr, lpdm, dgl, dgr, γ = p
 
     ncell = size(u, 3)
     nsp = size(u, 2)
-    
+
     @inbounds for j = 1:ncell
         for i = 1:nsp
             f[:, i, j] .= euler_flux(u[:, i, j], γ)[1] ./ J[j]

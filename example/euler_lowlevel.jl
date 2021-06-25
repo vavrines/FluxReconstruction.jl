@@ -33,15 +33,15 @@ function dudt!(du, u, p, t)
 
     ncell = size(u, 1)
     nsp = size(u, 2)
-    
+
     f = zeros(ncell, nsp, 3)
-    for i in 1:ncell, j in 1:nsp
+    for i = 1:ncell, j = 1:nsp
         f[i, j, :] .= euler_flux(u[i, j, :], γ)[1] ./ J[i]
     end
 
     u_face = zeros(ncell, 3, 2)
     f_face = zeros(ncell, 3, 2)
-    for i in 1:ncell, j in 1:3
+    for i = 1:ncell, j = 1:3
         # right face of element i
         u_face[i, j, 1] = dot(u[i, :, j], lr)
         f_face[i, j, 1] = dot(f[i, :, j], lr)
@@ -78,10 +78,10 @@ function dudt!(du, u, p, t)
 end
 
 tspan = (0.0, 0.15)
-p = (ps.nx, ps.deg+1, ps.J, ps.ll, ps.lr, ps.dl, ps.dhl, ps.dhr, γ)
+p = (ps.nx, ps.deg + 1, ps.J, ps.ll, ps.lr, ps.dl, ps.dhl, ps.dhr, γ)
 prob = ODEProblem(dudt!, u, tspan, p)
 nt = tspan[2] ÷ dt |> Int
-itg = init(prob, Midpoint(), saveat = tspan[2],adaptive = false, dt = dt)
+itg = init(prob, Midpoint(), saveat = tspan[2], adaptive = false, dt = dt)
 
 @showprogress for iter = 1:nt
     step!(itg)

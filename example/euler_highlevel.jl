@@ -29,7 +29,7 @@ end
 tspan = (0.0, 0.15)
 prob = FREulerProblem(u, tspan, ps, γ)
 nt = tspan[2] ÷ dt |> Int
-itg = init(prob, Midpoint(), saveat = tspan[2],adaptive = false, dt = dt)
+itg = init(prob, Midpoint(), saveat = tspan[2], adaptive = false, dt = dt)
 
 @showprogress for iter = 1:nt
     step!(itg)
