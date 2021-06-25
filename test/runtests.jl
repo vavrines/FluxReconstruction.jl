@@ -13,4 +13,4 @@ dgl, dgr = ∂radau(deg, xGauss)
 
 f = randn(5, nsp)
 fδ = randn(5, 2)
-FR.interp_interface!(fδ, f, ll, lr)
+FR.interp_face!(fδ, f, ll, lr)
