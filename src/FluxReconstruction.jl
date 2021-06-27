@@ -2,6 +2,7 @@ module FluxReconstruction
 
 const FR = FluxReconstruction
 
+using Base.Threads: @threads
 using GSL
 using LinearAlgebra
 using OrdinaryDiffEq
@@ -51,7 +52,7 @@ include("geo.jl")
 include("tools.jl")
 include("interpolate.jl")
 include("derivative.jl")
-include("equation.jl")
+include("Equation/equation.jl")
 include("integrator.jl")
 
 end
