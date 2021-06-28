@@ -45,7 +45,7 @@ export FREulerProblem
 
 include("data.jl")
 include("math.jl")
-include("poly.jl")
+include("Polynomial/polynomial.jl")
 include("quad.jl")
 include("struct.jl")
 include("geo.jl")

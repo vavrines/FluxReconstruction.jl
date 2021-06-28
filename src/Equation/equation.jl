@@ -1,3 +1,7 @@
-include("equation_advection.jl")
-include("equation_euler.jl")
-include("equation_bgk.jl")
+# ============================================================
+# Governing Equations
+# ============================================================
+
+include("eq_advection.jl")
+include("eq_euler.jl")
+include("eq_bgk.jl")
