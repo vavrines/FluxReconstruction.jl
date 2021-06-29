@@ -26,3 +26,4 @@ A partial list of current supported models include
 - Burgers equation
 - Euler equations
 - Navier-Stokes equations
+- Boltzmann equation
