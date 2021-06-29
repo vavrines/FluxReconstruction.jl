@@ -2,15 +2,24 @@ abstract type AbstractStructFRSpace <: KitBase.AbstractStructPhysicalSpace end
 abstract type AbstractUnstructFRSpace <: KitBase.AbstractUnstructPhysicalSpace end
 
 """
-    struct FRPSpace1D{R,I,A,B,C} <: AbstractStructFRSpace
-        x0::R
-        x1::R
-        nx::I
-        r::A
+    struct FRPSpace1D{
+        A,
+        I<:Integer,
+        B<:AbstractVector{<:AbstractFloat},
+        C<:AbstractMatrix{<:AbstractFloat},
+    } <: AbstractStructFRSpace
+        base::A
+        deg::I
+        J::B
         np::I
-        xp::B
-        x::C
-        dx::C    
+        xpl::B
+        xpg::C
+        wp::B
+        dl::C
+        ll::B
+        lr::B
+        dhl::B
+        dhr::B
     end
 
 1D physical space for flux reconstruction method
@@ -35,6 +44,8 @@ struct FRPSpace1D{
     dl::C
     ll::B
     lr::B
+    dll::B
+    dlr::B
     dhl::B
     dhr::B
 end
@@ -51,6 +62,16 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
     ll = lagrange_point(r, -1.0)
     lr = lagrange_point(r, 1.0)
     lpdm = ∂lagrange(r)
+
+    V = vandermonde_matrix(deg, r)
+    dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
+    ∂lf = zeros(2, deg+1)
+    for i = 1:2
+        ∂lf[i, :] .= V' \ dVf[i, :]
+    end
+    dll = ∂lf[1, :]
+    dlr = ∂lf[2, :]
+
     dhl, dhr = ∂radau(deg, r)
 
     return FRPSpace1D{typeof(ps),typeof(deg),typeof(J),typeof(xp)}(
@@ -64,6 +85,8 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
         lpdm,
         ll,
         lr,
+        dll,
+        dlr,
         dhl,
         dhr,
     )
@@ -71,41 +94,36 @@ end
 
 
 """
-    struct FRPSpace2D{R,I,A,B,C} <: AbstractStructFRSpace
-        x0::R
-        x1::R
-        nx::I
-        y0::R
-        y1::R
-        ny::I
-        r::A
-        np::I
-        xp::B
-        yp::B
-        x::C
-        y::C
-        dx::C
-        dy::C
-    end
+    
 
 2D physical space for flux reconstruction method
 
 """
-struct FRPSpace2D{R,I,A,B,C} <: AbstractStructFRSpace
-    x0::R
-    x1::R
-    nx::I
-    y0::R
-    y1::R
-    ny::I
-    r::A
+struct FRPSpace2D{
+    A,
+    I<:Integer,
+    B,
+    C<:AbstractVector{<:AbstractFloat},
+    D<:AbstractArray{<:AbstractFloat,5},
+    E<:AbstractMatrix{<:AbstractFloat},
+} <: AbstractStructFRSpace
+    base::A
+
+    deg::I
+    J::B
     np::I
-    xp::B
-    yp::B
-    x::C
-    y::C
-    dx::C
-    dy::C
+
+    xpl::C
+    xpg::D
+    wp::E
+
+    dl::E
+    ll::C
+    lr::C
+    dll::C
+    dlr::C
+    dhl::C
+    dhr::C
 end
 
 function FRPSpace2D(
@@ -115,61 +133,65 @@ function FRPSpace2D(
     y0::Real,
     y1::Real,
     ny::Integer,
-    np::Integer,
+    deg::Integer,
     ngx = 0::Integer,
     ngy = 0::Integer,
 )
-    δx = (x1 - x0) / nx
-    δy = (y1 - y0) / ny
+    ps = PSpace2D(x0, x1, nx, y0, y1, ny, ngx, ngy)
+    J = [[ps.dx[i, j] / 2, ps.dy[i, j] / 2] for i = 1:nx, j = 1:ny]
+    r = legendre_point(deg)
 
-    x = OffsetArray{Float64}(undef, 1-ngx:nx+ngx, 1-ngy:ny+ngy)
-    y = similar(x)
-    dx = similar(x)
-    dy = similar(x)
-
-    for j in axes(x, 2)
-        for i in axes(x, 1)
-            x[i, j] = x0 + (i - 0.5) * δx
-            y[i, j] = y0 + (j - 0.5) * δy
-            dx[i, j] = δx
-            dy[i, j] = δy
-        end
-    end
-
-    r = legendre_point(np)
-
-    xi = similar(x, 1-ngx:nx+ngx+1, 1-ngy:ny+ngy)
+    xi = similar(ps.x, 1-ngx:nx+ngx+1, 1-ngy:ny+ngy)
     for j in axes(xi, 2)
         for i = 1-ngx:nx+ngx
-            xi[i, j] = x[i, j] - 0.5 * dx[i, j]
+            xi[i, j] = ps.x[i, j] - 0.5 * ps.dx[i, j]
         end
-        xi[nx+ngx+1, j] = x[nx+ngx, j] + 0.5 * dx[nx+ngx, j]
+        xi[nx+ngx+1, j] = ps.x[nx+ngx, j] + 0.5 * ps.dx[nx+ngx, j]
     end
-    yi = similar(x, 1-ngx:nx+ngx, 1-ngy:ny+ngy+1)
+    yi = similar(ps.x, 1-ngx:nx+ngx, 1-ngy:ny+ngy+1)
     for i in axes(yi, 1)
         for j = 1-ngy:ny+ngy
-            yi[i, j] = y[i, j] - 0.5 * dy[i, j]
+            yi[i, j] = ps.y[i, j] - 0.5 * ps.dy[i, j]
         end
-        yi[i, ny+ngy+1] = y[i, ny+ngy] + 0.5 * dy[i, ny+ngy]
+        yi[i, ny+ngy+1] = ps.y[i, ny+ngy] + 0.5 * ps.dy[i, ny+ngy]
     end
 
     xp, yp = global_sp(xi, yi, r)
+    xpg = cat(xp, yp, dims=5)
 
-    return FRPSpace2D{typeof(x0),typeof(nx),typeof(r),typeof(xp),typeof(x)}(
-        x0,
-        x1,
-        nx,
-        y0,
-        y1,
-        ny,
+    w = gausslegendre(deg + 1)[2]
+    wp = [w[i] * w[j] for i = 1:deg+1, j = 1:deg+1]
+
+    ll = lagrange_point(r, -1.0)
+    lr = lagrange_point(r, 1.0)
+    lpdm = ∂lagrange(r)
+
+    V = vandermonde_matrix(deg, r)
+    dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
+    ∂lf = zeros(2, deg+1)
+    for i = 1:2
+        ∂lf[i, :] .= V' \ dVf[i, :]
+    end
+    dll = ∂lf[1, :]
+    dlr = ∂lf[2, :]
+
+    dhl, dhr = ∂radau(deg, r)
+
+    return FRPSpace2D{typeof(ps),typeof(deg),typeof(J),typeof(r),typeof(xpg),typeof(wp)}(
+        ps,
+        deg,
+        J,
+        (deg+1)^2,
         r,
-        np,
-        xp,
-        yp,
-        x,
-        y,
-        dx,
-        dy,
+        xpg,
+        wp,
+        lpdm,
+        ll,
+        lr,
+        dll,
+        dlr,
+        dhl,
+        dhr,
     )
 end
 

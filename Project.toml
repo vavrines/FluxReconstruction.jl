@@ -1,7 +1,7 @@
 name = "FluxReconstruction"
 uuid = "19bbc782-a6fb-447a-8120-ff40275555e1"
 authors = ["Tianbai Xiao <tianbaixiao@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 GSL = "92c85e6c-cbff-5e0c-80f7-495c94daaecd"
