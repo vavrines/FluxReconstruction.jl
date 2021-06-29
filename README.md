@@ -9,7 +9,7 @@ It is built in conjunction with the [SciML](https://github.com/SciML/Differentia
 ## Installation
 
 FluxReconstruction is a registered package in the official [Julia package registry](https://github.com/JuliaRegistries/General).
-We recommend installing it with the built-in Julia package manager, which automatically locates a stable release all its dependencies.
+We recommend installing it with the built-in Julia package manager, which automatically locates a stable release and all its dependencies.
 From the Julia REPL, you can get in the package manager (by pressing `]`) and add the package.
 
 ```julia
