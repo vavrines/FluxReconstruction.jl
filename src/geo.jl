@@ -63,11 +63,10 @@ function global_sp(
     cellid::AbstractMatrix{T2},
     N::Integer,
 ) where {T1<:Real,T2<:Integer}
-
     pl, wl = tri_quadrature(N)
     Np = size(wl, 1)
 
-    spg = zeros(size(cellid, 1), Np, 2)
+    spg = zeros(eltype(points), size(cellid, 1), Np, 2)
     for i in axes(spg, 1), j in axes(spg, 2)
         id1, id2, id3 = cellid[i, :]
         spg[i, j, :] .=

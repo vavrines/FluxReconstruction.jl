@@ -52,10 +52,10 @@ end
 
 function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integer)
     ps = PSpace1D(x0, x1, nx, ng)
-    J = [0.5 * ps.dx[i] for i in eachindex(ps.dx)]
+    J = [ps.dx[i] / 2 for i in eachindex(ps.dx)]
 
-    r = legendre_point(deg)
-    xi = push!(ps.x - 0.5 * ps.dx, ps.x[end] + 0.5 * ps.dx[end])
+    r = legendre_point(deg) .|> eltype(ps.x)
+    xi = push!(ps.x - 0.5 * ps.dx, ps.x[end] + 0.5 * ps.dx[end]) .|> eltype(ps.x)
     xp = global_sp(xi, r)
     wp = gausslegendre(deg + 1)[2]
 
@@ -140,7 +140,7 @@ function FRPSpace2D(
     ps = PSpace2D(x0, x1, nx, y0, y1, ny, ngx, ngy)
     J = [[ps.dx[i, j] / 2, ps.dy[i, j] / 2] for i = 1-ngx:nx+ngx, j = 1-ngy:ny+ngy]
     J = OffsetArray(J, 1-ngx:nx+ngx, 1-ngy:ny+ngy)
-    r = legendre_point(deg)
+    r = legendre_point(deg) .|> eltype(ps.x)
 
     xi = similar(ps.x, 1-ngx:nx+ngx+1, 1-ngy:ny+ngy)
     for j in axes(xi, 2)
@@ -161,7 +161,7 @@ function FRPSpace2D(
     xpg = cat(xp, yp, dims=5)
     xpg = OffsetArray(xpg, 1-ngx:nx+ngx, 1-ngy:ny+ngy, 1:deg+1, 1:deg+1, 1:2)
 
-    w = gausslegendre(deg + 1)[2]
+    w = gausslegendre(deg + 1)[2] .|> eltype(ps.x)
     wp = [w[i] * w[j] for i = 1:deg+1, j = 1:deg+1]
 
     ll = lagrange_point(r, -1.0)
@@ -170,7 +170,7 @@ function FRPSpace2D(
 
     V = vandermonde_matrix(deg, r)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
-    ∂lf = zeros(2, deg+1)
+    ∂lf = zeros(eltype(ps.x), 2, deg+1)
     for i = 1:2
         ∂lf[i, :] .= V' \ dVf[i, :]
     end
