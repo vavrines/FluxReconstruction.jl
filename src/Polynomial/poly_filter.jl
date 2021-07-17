@@ -1,3 +1,70 @@
+function modal_filter!(u::AbstractArray{T}, args...; filter::Symbol) where {T<:AbstractFloat}
+    filtstr = "filter_" * string(filter) * "!"
+    filtfunc = Symbol(filtstr) |> eval
+    filtfunc(u, args...)
+
+    return nothing
+end
+
+function filter_l2!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
+    q0 = eachindex(u) |> first
+    q1 = eachindex(u) |> last
+    @assert q0 >= 0
+
+    λ = args[1]
+    for i = q0+1:q1
+        u[i] /= (1.0 + λ * (i - q0 + 1)^2 * (i - q0)^2)
+    end
+
+    return nothing
+end
+
+function filter_l1!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
+    q0 = eachindex(u) |> first
+    q1 = eachindex(u) |> last
+    @assert q0 >= 0
+
+    λ = args[1]
+    ℓ = args[2]
+    for i = q0+1:q1
+        sc = 1.0 - λ * i * (i - 1) * ℓ[i] / abs(u[i] + 1e-8)
+        if sc < 0.0
+            sc = 0.0
+        end
+        u[i] *= sc
+    end
+
+    return nothing
+end
+
+function filter_lasso!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
+    q0 = eachindex(u) |> first
+    q1 = eachindex(u) |> last
+    @assert q0 >= 0
+
+    ℓ = args[1]
+    nr = length(u)
+    λ = abs(u[end]) / (nr * (nr - 1) * ℓ[end])
+    filter_l1!(u, λ, ℓ)
+
+    return nothing
+end
+
+function basis_norm(deg)
+    NxHat = 100
+    xHat = range(-1, stop = 1, length = NxHat) |> collect
+    dxHat = xHat[2] - xHat[1]
+
+    nLocal = deg + 1
+    PhiL1 = zeros(nLocal)
+    for i = 1:nLocal
+        PhiL1[i] = dxHat * sum(abs.(JacobiP(xHat, 0, 0, i-1)))
+    end
+
+    return PhiL1
+end
+
+
 """
     filter_exp1d(N, Nc, s)
 

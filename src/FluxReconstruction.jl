@@ -26,7 +26,8 @@ export legendre_point,
        ∂vandermonde_matrix,
        correction_field,
        JacobiP,
-       ∂JacobiP
+       ∂JacobiP,
+       modal_filter!
 export tri_quadrature, triface_quadrature
 export FRPSpace1D,
        FRPSpace2D,
