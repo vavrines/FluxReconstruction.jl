@@ -22,6 +22,7 @@ FR.interp_face!(fδ, f, ll, lr)
 
 u = rand(deg+1)
 ℓ = FR.basis_norm(deg)
-FR.filter_l2!(u, 1e-6)
-FR.filter_l1!(u, 1e-6, ℓ)
-FR.filter_lasso!(u, ℓ)
+
+modal_filter!(u, 1e-6; filter = :l2)
+modal_filter!(u, 1e-6, ℓ; filter = :l1)
+modal_filter!(u, ℓ; filter = :lasso)
