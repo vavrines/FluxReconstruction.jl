@@ -1,4 +1,4 @@
-using KitBase, FluxRC, OrdinaryDiffEq
+using KitBase, FluxReconstruction, OrdinaryDiffEq
 
 begin
     x0 = -1
@@ -77,7 +77,12 @@ function mol!(du, u, p, t) # method of lines
 
     u_face = zeros(ncell, nsp)
     f_face = zeros(ncell, nsp)
-    for i = 1:ncell, j = 1:nsp
+
+    u_face[:, 1] .= u * lr
+    f_face[:, 1] .= f * lr
+    u_face[:, 2] .= u * ll
+    f_face[:, 2] .= f * ll
+    #=for i = 1:ncell, j = 1:nsp
         # right face of element i
         u_face[i, 1] += u[i, j] * lr[j]
         f_face[i, 1] += f[i, j] * lr[j]
@@ -85,7 +90,7 @@ function mol!(du, u, p, t) # method of lines
         # left face of element i
         u_face[i, 2] += u[i, j] * ll[j]
         f_face[i, 2] += f[i, j] * ll[j]
-    end
+    end=#
 
     au = zeros(nface)
     for i = 1:nface
