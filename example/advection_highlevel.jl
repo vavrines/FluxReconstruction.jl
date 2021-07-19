@@ -16,7 +16,7 @@ begin
 end
 ps = FRPSpace1D(x0, x1, ncell, deg)
 
-u = zeros(ncell, deg+1)
+u = zeros(ncell, deg + 1)
 for i = 1:ncell, j = 1:deg+1
     u[i, j] = exp(-20.0 * ps.xpg[i, j]^2)
 end

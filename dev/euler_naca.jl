@@ -88,11 +88,7 @@ function dudt!(du, u, p, t)
             pn[1] = (1 - tmp) / (1 + tmp) * prim[1]
 
             un = prim_conserve(pn, γ)
-            uR = local_frame(
-                un,
-                cell_normal[i, j, 1],
-                cell_normal[i, j, 2],
-            )
+            uR = local_frame(un, cell_normal[i, j, 1], cell_normal[i, j, 2])
 
             flux_hll!(fwn_local, uL, uR, γ, 1.0)
         end
@@ -161,7 +157,7 @@ end
 @showprogress for iter = 1:500
     step!(itg)
 
-    if iter%50 == 0
+    if iter % 50 == 0
         output(ps, itg)
     end
 end

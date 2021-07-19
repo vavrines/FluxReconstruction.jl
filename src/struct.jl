@@ -65,7 +65,7 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
 
     V = vandermonde_matrix(deg, r)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
-    ∂lf = zeros(2, deg+1)
+    ∂lf = zeros(2, deg + 1)
     for i = 1:2
         ∂lf[i, :] .= V' \ dVf[i, :]
     end
@@ -158,7 +158,7 @@ function FRPSpace2D(
     end
 
     xp, yp = global_sp(xi, yi, r)
-    xpg = cat(xp, yp, dims=5)
+    xpg = cat(xp, yp, dims = 5)
     xpg = OffsetArray(xpg, 1-ngx:nx+ngx, 1-ngy:ny+ngy, 1:deg+1, 1:deg+1, 1:2)
 
     w = gausslegendre(deg + 1)[2] .|> eltype(ps.x)
@@ -170,7 +170,7 @@ function FRPSpace2D(
 
     V = vandermonde_matrix(deg, r)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
-    ∂lf = zeros(eltype(ps.x), 2, deg+1)
+    ∂lf = zeros(eltype(ps.x), 2, deg + 1)
     for i = 1:2
         ∂lf[i, :] .= V' \ dVf[i, :]
     end
@@ -183,7 +183,7 @@ function FRPSpace2D(
         ps,
         deg,
         J,
-        (deg+1)^2,
+        (deg + 1)^2,
         r,
         xpg,
         wp,

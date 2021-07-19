@@ -1,8 +1,8 @@
 using KitBase, FluxReconstruction, OrdinaryDiffEq, CUDA, LinearAlgebra, Plots
 
 begin
-    x0 = -1.f0
-    x1 = 1.f0
+    x0 = -1.0f0
+    x1 = 1.0f0
     ncell = 100
     dx = (x1 - x0) / ncell
     deg = 2
@@ -11,7 +11,7 @@ begin
     dt = cfl * dx
     t = 0.0f0
     a = 1.0f0
-    tspan = (0.f0, 1.f0)
+    tspan = (0.0f0, 1.0f0)
     nt = tspan[2] / dt |> floor |> Int
     bc = :period
 end

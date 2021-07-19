@@ -64,7 +64,7 @@ function frode_advection!(du::Matrix, u, p, t)
     f_face .= hcat(f * ll, f * lr)
 
     advection_iflux!(f_interaction, f_face, u_face)
-    
+
     rhs1 .= f * lpdm'
 
     scalar_rhs!(du, rhs1, f_face, f_interaction, dgl, dgr)
@@ -88,7 +88,7 @@ function frode_advection!(du, u, p, t)
     f_face .= hcat(f * ll, f * lr)
 
     @cuda advection_iflux!(f_interaction, f_face, u_face)
-    
+
     rhs1 .= f * lpdm'
 
     @cuda scalar_rhs!(du, rhs1, f_face, f_interaction, dgl, dgr)
@@ -127,9 +127,7 @@ end
 
 function advection_iflux!(f_interaction::Array, f_face, u_face)
     @inbounds @threads for i = 2:length(f_interaction)-1
-        au =
-            (f_face[i, 1] - f_face[i-1, 2]) /
-            (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
+        au = (f_face[i, 1] - f_face[i-1, 2]) / (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
 
         f_interaction[i] = (
             0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
@@ -145,9 +143,7 @@ function advection_iflux!(f_interaction, f_face, u_face)
     strx = blockDim().x * gridDim().x
 
     @inbounds for i = idx+1:strx:length(f_interaction)-1
-        au =
-            (f_face[i, 1] - f_face[i-1, 2]) /
-            (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
+        au = (f_face[i, 1] - f_face[i-1, 2]) / (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
 
         f_interaction[i] = (
             0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
@@ -169,7 +165,10 @@ function period_advection!(du::AbstractMatrix, u, p)
     ncell, nsp = size(u)
 
     au = (f_face[1, 1] - f_face[ncell, 2]) / (u_face[1, 1] - u_face[ncell, 2] + 1e-6)
-    f_interaction[1] = (0.5 * (f_face[ncell, 2] + f_face[1, 1]) - 0.5 * abs(au) * (u_face[1, 1] - u_face[ncell, 2]))
+    f_interaction[1] = (
+        0.5 * (f_face[ncell, 2] + f_face[1, 1]) -
+        0.5 * abs(au) * (u_face[1, 1] - u_face[ncell, 2])
+    )
     f_interaction[end] = f_interaction[1]
 
     for ppp1 = 1:nsp

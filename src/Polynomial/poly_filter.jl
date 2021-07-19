@@ -1,4 +1,8 @@
-function modal_filter!(u::AbstractArray{T}, args...; filter::Symbol) where {T<:AbstractFloat}
+function modal_filter!(
+    u::AbstractArray{T},
+    args...;
+    filter::Symbol,
+) where {T<:AbstractFloat}
     filtstr = "filter_" * string(filter) * "!"
     filtfunc = Symbol(filtstr) |> eval
     filtfunc(u, args...)
@@ -58,7 +62,7 @@ function basis_norm(deg)
     nLocal = deg + 1
     PhiL1 = zeros(nLocal)
     for i = 1:nLocal
-        PhiL1[i] = dxHat * sum(abs.(JacobiP(xHat, 0, 0, i-1)))
+        PhiL1[i] = dxHat * sum(abs.(JacobiP(xHat, 0, 0, i - 1)))
     end
 
     return PhiL1
@@ -125,7 +129,7 @@ Construct exponential filter for nodal solution
 """
 function filter_exp(N, Nc, s, V, invV = inv(V))
     nv = size(V, 1)
-    if nv == N+1
+    if nv == N + 1
         filterdiag = filter_exp1d(N, Nc, s)
     elseif nv == (N + 1) * (N + 2)
         filterdiag = filter_exp2d(N, Nc, s)

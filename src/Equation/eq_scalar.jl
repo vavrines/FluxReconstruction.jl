@@ -34,4 +34,3 @@ function scalar_rhs!(du::CuDeviceMatrix, rhs1, f_face, f_interaction, dgl, dgr)
 
     return nothing
 end
-

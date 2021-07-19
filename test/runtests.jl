@@ -20,7 +20,7 @@ f = randn(5, nsp)
 fδ = randn(5, 2)
 FR.interp_face!(fδ, f, ll, lr)
 
-u = rand(deg+1)
+u = rand(deg + 1)
 ℓ = FR.basis_norm(deg)
 
 modal_filter!(u, 1e-6; filter = :l2)

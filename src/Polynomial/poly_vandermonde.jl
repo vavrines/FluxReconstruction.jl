@@ -79,10 +79,10 @@ Compute the Vandermonde matrix
 - @arg s: local y axis
 """
 function vandermonde_matrix(N, r)
-    V1D = zeros(length(r), N+1)
+    V1D = zeros(length(r), N + 1)
 
     for j = 1:N+1
-        V1D[:, j] .= JacobiP(r, 0, 0, j-1)
+        V1D[:, j] .= JacobiP(r, 0, 0, j - 1)
     end
 
     return V1D
@@ -113,7 +113,7 @@ gradient of the modal basis (i,j) at (r,s) at order N
 
 """
 function ∂vandermonde_matrix(N, r)
-    Vr = zeros(length(r), N+1)
+    Vr = zeros(length(r), N + 1)
 
     for i = 0:N
         Vr[:, i+1] .= ∂JacobiP(r, 0, 0, i)
