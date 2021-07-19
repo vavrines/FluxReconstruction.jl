@@ -3,6 +3,7 @@ module FluxReconstruction
 const FR = FluxReconstruction
 
 using Base.Threads: @threads
+using CUDA
 using GSL
 using LinearAlgebra
 using OrdinaryDiffEq
