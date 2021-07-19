@@ -54,18 +54,38 @@ function filter_lasso!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     return nothing
 end
 
-function basis_norm(deg)
-    NxHat = 100
-    xHat = range(-1, stop = 1, length = NxHat) |> collect
-    dxHat = xHat[2] - xHat[1]
+function filter_exp!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
+    N = length(u) - 1
+    s = args[1]
+    Nc = ifelse(length(args)>1, args[2], 0)
+    
+    σ = filter_exp1d(N, s, Nc)
+    u .*= σ
 
-    nLocal = deg + 1
-    PhiL1 = zeros(nLocal)
-    for i = 1:nLocal
-        PhiL1[i] = dxHat * sum(abs.(JacobiP(xHat, 0, 0, i - 1)))
+    return nothing
+end
+
+
+"""
+    filter_exp(N, Nc, s, V, invV)
+
+Construct exponential filter for nodal solution
+
+- @arg N: number of coefficients
+- @arg Nc: cutoff location
+- @arg s: order of filter (must be even)
+- @arg V: Vandermonde matrix
+"""
+function filter_exp(N, s, V, Nc = 0, invV = inv(V))
+    nv = size(V, 1)
+    if nv == N + 1
+        filterdiag = filter_exp1d(N, s, Nc)
+    elseif nv == (N + 1) * (N + 2)
+        filterdiag = filter_exp2d(N, s, Nc)
     end
+    F = V * diagm(filterdiag) * invV
 
-    return PhiL1
+    return F
 end
 
 
@@ -75,10 +95,10 @@ end
 Construct exponential filter for modal solution
 
 - @arg N: degree of polynomials
-- @arg Nc: cutoff location
 - @arg s: order of filter (must be even)
+- @arg Nc: cutoff location
 """
-function filter_exp1d(N, Nc, s)
+function filter_exp1d(N, s, Nc = 0)
     alpha = -log(eps())
 
     filterdiag = ones(N + 1)
@@ -96,10 +116,10 @@ end
 Construct exponential filter for modal solution
 
 - @arg N: degree of polynomials
-- @arg Nc: cutoff location
 - @arg s: order of filter (must be even)
+- @arg Nc: cutoff location
 """
-function filter_exp2d(Norder, Nc, sp)
+function filter_exp2d(Norder, sp, Nc = 0)
     alpha = -log(eps())
 
     filterdiag = ones((Norder + 1) * (Norder + 2) / 2)
@@ -118,23 +138,20 @@ end
 
 
 """
-    filter_exp(N, Nc, s, V, invV)
+    basis_norm(deg)
 
-Construct exponential filter for nodal solution
-
-- @arg N: number of coefficients
-- @arg Nc: cutoff location
-- @arg s: order of filter (must be even)
-- @arg V: Vandermonde matrix
+Calculate norm of polynomial basis
 """
-function filter_exp(N, Nc, s, V, invV = inv(V))
-    nv = size(V, 1)
-    if nv == N + 1
-        filterdiag = filter_exp1d(N, Nc, s)
-    elseif nv == (N + 1) * (N + 2)
-        filterdiag = filter_exp2d(N, Nc, s)
-    end
-    F = V * diagm(filterdiag) * invV
+function basis_norm(deg)
+    NxHat = 100
+    xHat = range(-1, stop = 1, length = NxHat) |> collect
+    dxHat = xHat[2] - xHat[1]
 
-    return F
+    nLocal = deg + 1
+    PhiL1 = zeros(nLocal)
+    for i = 1:nLocal
+        PhiL1[i] = dxHat * sum(abs.(JacobiP(xHat, 0, 0, i - 1)))
+    end
+
+    return PhiL1
 end
