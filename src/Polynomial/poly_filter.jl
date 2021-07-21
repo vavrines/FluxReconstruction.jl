@@ -23,6 +23,20 @@ function filter_l2!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     return nothing
 end
 
+function filter_l2opt!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
+    q0 = eachindex(u) |> first
+    q1 = eachindex(u) |> last
+    @assert q0 >= 0
+
+    λ = args[1]
+    η = λ * 2^2
+    for i = q0+1:q1
+        u[i] /= (1.0 + λ * (i - q0 + 1)^2 * (i - q0)^2 - η)
+    end
+
+    return nothing
+end
+
 function filter_l1!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     q0 = eachindex(u) |> first
     q1 = eachindex(u) |> last
