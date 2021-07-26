@@ -15,6 +15,7 @@ using KitBase.SpecialFunctions
 
 export FR
 export L1_error, L2_error, L∞_error
+export shock_detector
 export legendre_point,
        lagrange_point,
        ∂legendre,
@@ -47,6 +48,7 @@ export FREulerProblem
 
 include("data.jl")
 include("math.jl")
+include("physics.jl")
 include("Polynomial/polynomial.jl")
 include("quad.jl")
 include("struct.jl")
