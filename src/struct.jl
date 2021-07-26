@@ -64,7 +64,7 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
     lr = lagrange_point(r, 1.0)
     lpdm = ∂lagrange(r)
 
-    V = vandermonde_matrix(deg, r)
+    V = vandermonde_matrix(deg, r) |> Array
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
     ∂lf = zeros(2, deg + 1)
     for i = 1:2
@@ -74,7 +74,6 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
     dlr = ∂lf[2, :]
 
     dhl, dhr = ∂radau(deg, r)
-    V = vandermonde_matrix(deg, r)
 
     return FRPSpace1D{typeof(ps),typeof(deg),typeof(J),typeof(xp)}(
         ps,

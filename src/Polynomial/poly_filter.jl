@@ -71,7 +71,13 @@ end
 function filter_exp!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     N = length(u) - 1
     s = args[1]
-    Nc = ifelse(length(args)>1, args[2], 0)
+    Nc = begin
+        if length(args)>1
+            args[2]
+        else
+            0
+        end
+    end
     
     σ = filter_exp1d(N, s, Nc)
     u .*= σ
@@ -82,7 +88,13 @@ end
 function filter_houli!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     N = length(u) - 1
     s = args[1]
-    Nc = ifelse(length(args)>1, args[2], 0)
+    Nc = begin
+        if length(args)>1
+            args[2]
+        else
+            0
+        end
+    end
     
     σ = filter_exp1d(N, s, Nc)
     for i in eachindex(σ)
@@ -111,7 +123,7 @@ function filter_exp(N, s, V, Nc = 0, invV = inv(V))
     nv = size(V, 1)
     if nv == N + 1
         filterdiag = filter_exp1d(N, s, Nc)
-    elseif nv == (N + 1) * (N + 2)
+    elseif nv == (N + 1) * (N + 2) ÷ 2
         filterdiag = filter_exp2d(N, s, Nc)
     end
     F = V * diagm(filterdiag) * invV
@@ -153,7 +165,7 @@ Construct exponential filter for modal solution
 function filter_exp2d(Norder, sp, Nc = 0)
     alpha = -log(eps())
 
-    filterdiag = ones((Norder + 1) * (Norder + 2) / 2)
+    filterdiag = ones((Norder + 1) * (Norder + 2) ÷ 2)
     sk = 1
     for i = 0:Norder
         for j = 0:Norder-i

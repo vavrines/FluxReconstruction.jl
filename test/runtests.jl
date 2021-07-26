@@ -1,28 +1,34 @@
-using FluxReconstruction
+using Test, FluxReconstruction
 
-deg = 7
-nsp = deg + 1
+cd(@__DIR__)
 
+let u = rand(3), u0 = rand(3) 
+    FR.L1_error(u, u0, 0.1)
+    FR.L1_error(u, u0, 0.1)
+    FR.L1_error(u, u0, 0.1)
+end
+
+shock_detector(log10(0.1), 3)
+
+deg = 5
+
+ps2 = FRPSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20, deg)
+ps1 = TriFRPSpace("../assets/linesource.msh", 2)
 ps = FRPSpace1D(0.0, 1.0, 20, deg)
 
-V = vandermonde_matrix(ps.deg, ps.xpl)
+let u = rand(deg+1)
+    ℓ = FR.basis_norm(deg)
 
-FR.filter_exp1d(ps.deg, 10, 2)
-FR.filter_exp(ps.deg, 2, V, 2)
+    modal_filter!(u, 1e-6; filter = :l2)
+    modal_filter!(u, 1e-6, ℓ; filter = :l1)
+    modal_filter!(u, ℓ; filter = :lasso)
+    modal_filter!(u, 10; filter = :exp)
+    modal_filter!(u, 10; filter = :houli)
 
-xGauss = legendre_point(deg)
-ll = lagrange_point(xGauss, -1.0)
-lr = lagrange_point(xGauss, 1.0)
-lpdm = ∂lagrange(xGauss)
-dgl, dgr = ∂radau(deg, xGauss)
+    # 2D exponential filter
+    FR.filter_exp(2, 10, Array(ps.V))
+end
 
-f = randn(5, nsp)
+f = randn(5, deg+1)
 fδ = randn(5, 2)
-FR.interp_face!(fδ, f, ll, lr)
-
-u = rand(deg + 1)
-ℓ = FR.basis_norm(deg)
-
-modal_filter!(u, 1e-6; filter = :l2)
-modal_filter!(u, 1e-6, ℓ; filter = :l1)
-modal_filter!(u, ℓ; filter = :lasso)
+FR.interp_face!(fδ, f, ps.ll, ps.lr)
