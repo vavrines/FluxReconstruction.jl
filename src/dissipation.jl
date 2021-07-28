@@ -64,11 +64,19 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr) where {T<:A
     tj = Float64[]
     for i = 1:2
         prim = conserve_prim([ρb[i], mb[i], eb[i]], γ)
-        pressure = 0.5 * prim[1] / prim[3]
 
-        if pressure < ϵ
+        if prim[end] < ϵ
             prob = NonlinearProblem{false}(tj_equation, 1.0, ([ρb[i], mb[i], eb[i]], u_mean, γ, ϵ))
-            sol = solve(prob, NewtonRaphson(), tol = 1e-6)
+            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            push!(tj, sol.u)
+        end
+    end
+    for i in axes(u, 1)
+        prim = conserve_prim(u[i, :], γ)
+
+        if prim[end] < ϵ
+            prob = NonlinearProblem{false}(tj_equation, 1.0, (u[i, :], u_mean, γ, ϵ))
+            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
             push!(tj, sol.u)
         end
     end
