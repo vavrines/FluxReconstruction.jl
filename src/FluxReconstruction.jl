@@ -6,6 +6,7 @@ using Base.Threads: @threads
 using CUDA
 using GSL
 using LinearAlgebra
+using NonlinearSolve
 using OrdinaryDiffEq
 using PyCall
 using KitBase
@@ -14,8 +15,8 @@ using KitBase.OffsetArrays
 using KitBase.SpecialFunctions
 
 export FR
-export L1_error, L2_error, L∞_error
-export shock_detector
+export shock_detector,
+       positive_limiter
 export legendre_point,
        lagrange_point,
        ∂legendre,
@@ -47,8 +48,7 @@ export poly_derivative!
 export FREulerProblem
 
 include("data.jl")
-include("math.jl")
-include("physics.jl")
+include("dissipation.jl")
 include("Polynomial/polynomial.jl")
 include("quad.jl")
 include("struct.jl")

@@ -18,6 +18,8 @@ ps2 = FRPSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20, deg)
 ps1 = TriFRPSpace("../assets/linesource.msh", 2)
 ps = FRPSpace1D(0.0, 1.0, 20, deg)
 
+positive_limiter(ones(6, 3), 5/3, 1/6, ps.ll, ps.lr)
+
 let u = rand(deg+1)
     ℓ = FR.basis_norm(deg)
 
