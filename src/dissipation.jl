@@ -34,18 +34,15 @@ _R. Vandenhoeck and A. Lani. Implicit high-order flux reconstruction solver for 
 - @arg γ: specific heat ratio
 - @arg weights: quadrature weights for computing mean value
 - @arg ll&lr: Langrange polynomials at left/right edge
+- @arg t0=1.0: minimum limiting slope
 """
-function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr) where {T<:AbstractFloat}
+function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr, t0 = 1.0) where {T<:AbstractFloat}
     # mean values
-    u_mean = [
-        sum(u[:, 1] .* weights),
-        sum(u[:, 2] .* weights),
-        sum(u[:, 3] .* weights),
-    ]
+    u_mean = [sum(u[:, j] .* weights) for j in axes(u, 2)]
     t_mean = 1.0 / conserve_prim(u_mean, γ)[end]
     p_mean = 0.5 * u_mean[1] * t_mean
     
-    # boundary variables
+    # boundary values
     ρb = [dot(u[:, 1], ll), dot(u[:, 1], lr)]
     mb = [dot(u[:, 2], ll), dot(u[:, 2], lr)]
     eb = [dot(u[:, 3], ll), dot(u[:, 3], lr)]
@@ -62,7 +59,7 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr) where {T<:A
 
     # energy corrector
     tj = Float64[]
-    for i = 1:2
+    for i = 1:2 # flux points
         prim = conserve_prim([ρb[i], mb[i], eb[i]], γ)
 
         if prim[end] < ϵ
@@ -71,7 +68,7 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr) where {T<:A
             push!(tj, sol.u)
         end
     end
-    for i in axes(u, 1)
+    for i in axes(u, 1) # solution points
         prim = conserve_prim(u[i, :], γ)
 
         if prim[end] < ϵ
@@ -82,12 +79,11 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr) where {T<:A
     end
 
     if length(tj) > 0
-        t2 = minimum(tj)
+        t2 = minimum(tj, t0)
         for j in axes(u, 2), i in axes(u, 1)
             u[i, j] = t2 * (u[i, j] - u_mean[j]) + u_mean[j]
         end
     end
-
 
     return nothing
 end
