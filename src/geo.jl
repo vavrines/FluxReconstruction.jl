@@ -198,17 +198,55 @@ function rs_xy(
 end
 
 
+
+
+"""
+
+Isosceles right triangle element
+
+x = λ¹V¹ + λ²V² + λ³V³
+
+λs are bilinear rectangle shape functions  
+λ¹ =  -(r+s)/2  
+λ² = (r+1)/2
+λ³ = (s+1)/2
+
+xᵣ = -V¹/2 + V²/2
+xₛ = -V¹/2 + V³/2
+
+"""
 function rs_jacobi(cells, points)
     ncell = size(cells, 1)
     J = [
         begin
-            xr, yr = points[cells[i, 2], 1:2] - points[cells[i, 1], 1:2]
-            xs, ys = points[cells[i, 3], 1:2] - points[cells[i, 1], 1:2]
+            xr, yr = (points[cells[i, 2], 1:2] - points[cells[i, 1], 1:2]) ./ 2
+            xs, ys = (points[cells[i, 3], 1:2] - points[cells[i, 1], 1:2]) ./ 2
             [xr xs; yr ys]
         end for i = 1:ncell
     ]
 
     return J
+end
+
+"""
+
+Quadrilateral element
+
+x = λ¹V¹ + λ²V² + λ³V³ + λ⁴V⁴
+
+λs are bilinear rectangle shape functions  
+λ¹ = (r-1)(s-1)/4  
+λ² = (r+1)(1-s)/4  
+λ³ = (r+1)(s+1)/4  
+λ⁴ = (1-r)(s+1)/4  
+
+xᵣ = 
+xₛ = 
+
+"""
+function rs_jacobi()
+
+
 end
 
 
