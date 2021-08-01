@@ -1,9 +1,9 @@
 """
-    lagrange_point(sp::T, x) where {T<:AbstractVector{<:Real}}
+    lagrange_point(sp::AbstractVector{T}, x) where {T<:Real}
 
 Calculate Legendre polynomials of solution points sp at location x
 """
-function lagrange_point(sp::T, x) where {T<:AbstractVector{<:Real}}
+function lagrange_point(sp::AbstractVector{T}, x::Real) where {T<:Real}
     l = similar(sp)
     nsp = length(sp)
 
@@ -20,13 +20,23 @@ function lagrange_point(sp::T, x) where {T<:AbstractVector{<:Real}}
     return l
 end
 
+function lagrange_point(sp, x::AbstractVector{T}) where {T<:Real}
+    lp = zeros(eltype(sp), axes(x, 1), axes(sp, 1))
+    
+    for i in axes(lp, 1)
+        lp[i, :] .= lagrange_point(sp, x[i])
+    end
+
+    return lp
+end
+
 
 """
     ∂lagrange(sp::T) where {T<:AbstractVector{<:Real}}
     ∂lagrange(V, Vr)
     ∂lagrange(V, Vr, Vs)
 
-Calculate derivatives of Lagrange polynomials
+Calculate derivatives of Lagrange polynomials dlⱼ(rᵢ)
 """
 function ∂lagrange(sp::T) where {T<:AbstractVector{<:Real}}
     nsp = length(sp)

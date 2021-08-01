@@ -198,8 +198,6 @@ function rs_xy(
 end
 
 
-
-
 """
 
 Isosceles right triangle element
