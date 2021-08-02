@@ -20,7 +20,7 @@ end
 
 function Base.propertynames(x::AbstractStructFRSpace, private::Bool = false)
     public = fieldnames(typeof(x))
-    true ? ((public ∪ union(fieldnames(PSpace1D), fieldnames(PSpace2D)))...,) : public
+    true ? ((public ∪ union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(CSpace2D)))...,) : public
 end
 
 function Base.propertynames(x::AbstractUnstructFRSpace, private::Bool = false)
