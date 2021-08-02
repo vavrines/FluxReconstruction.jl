@@ -3,7 +3,9 @@
 # ------------------------------------------------------------
 
 function Base.getproperty(x::AbstractStructFRSpace, name::Symbol)
-    if name in union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D))
+    options = unionunion(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D))
+
+    if name in options
         return getfield(x.base, name)
     else
         return getfield(x, name)
