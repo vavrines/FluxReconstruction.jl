@@ -1,14 +1,60 @@
-using FluxReconstruction, OrdinaryDiffEq, Plots, LinearAlgebra, KitBase
+using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq
 using ProgressMeter: @showprogress
+using Plots
 
-ps0 = KitBase.PSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20)
-deg = 2
-ps = FRPSpace2D(ps0, deg)
-a = [0.1, 0.1]
+pyplot()
+cd(@__DIR__)
 
-u0 = zeros(ps.nx, ps.ny, deg+1, deg+1)
+begin
+    set = Setup(
+        "gas",
+        "cylinder",
+        "2d0f",
+        "hll",
+        "nothing",
+        1, # species
+        3, # order of accuracy
+        "positivity", # limiter
+        "euler",
+        0.1, # cfl
+        1.0, # time
+    )
+
+    ps0 = KitBase.CSpace2D(1.0, 6.0, 60, 0.0, π, 50)
+    deg = set.interpOrder - 1
+    ps = FRPSpace2D(ps0, deg)
+
+    vs = nothing
+    gas = Gas(
+        1e-6,
+        2.0, # Mach
+        1.0,
+        1.0, # K
+        5/3,
+        0.81,
+        1.0,
+        0.5,
+    )
+    ib = nothing
+
+    ks = SolverSet(set, ps0, vs, gas, ib)
+end
+
+n1 = [[0.0, 0.0] for i = 1:ps.nr+1, j = 1:ps.nθ]
+for i = 1:ps.nr+1, j = 1:ps.nθ
+    angle = sum(ps.dθ[1, 1:j-1]) + 0.5 * ps.dθ[1, j]
+    n1[i, j] .= [cos(angle), sin(angle)]
+end
+
+n2 = [[0.0, 0.0] for i = 1:ps.nr, j = 1:ps.nθ+1]
+for i = 1:ps.nr, j = 1:ps.nθ+1
+    angle = π/2 + sum(ps.dθ[1, 1:j-1])
+    n2[i, j] .= [cos(angle), sin(angle)]
+end
+
+u0 = zeros(ps.nr, ps.nθ, deg+1, deg+1)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
-    u0[i, j, k, l] = max(exp(-300 * ((ps.xpg[i, j, k, l, 1] - 0.5)^2 + (ps.xpg[i, j, k, l, 2] - 0.5)^2)), 1e-2)
+    u0[i, j, k, l] = max(exp(-3 * ((ps.xpg[i, j, k, l, 1] - 2)^2 + (ps.xpg[i, j, k, l, 2] - 2)^2)), 1e-2)
 end
 
 function dudt!(du, u, p, t)
@@ -32,11 +78,11 @@ function dudt!(du, u, p, t)
         u_face[i, j, 3, l] = dot(u[i, j, l, :], lr)
         u_face[i, j, 4, l] = dot(u[i, j, :, l], ll)
 
-        for m = 1:2
-            f_face[i, j, 1, l, m] = dot(f[i, j, l, :, m], ll)
-            f_face[i, j, 2, l, m] = dot(f[i, j, :, l, m], lr)
-            f_face[i, j, 3, l, m] = dot(f[i, j, l, :, m], lr)
-            f_face[i, j, 4, l, m] = dot(f[i, j, :, l, m], ll)
+        for n = 1:2
+            f_face[i, j, 1, l, n] = dot(f[i, j, l, :, n], ll)
+            f_face[i, j, 2, l, n] = dot(f[i, j, :, l, n], lr)
+            f_face[i, j, 3, l, n] = dot(f[i, j, l, :, n], lr)
+            f_face[i, j, 4, l, n] = dot(f[i, j, :, l, n], ll)
         end
     end
 
@@ -58,7 +104,7 @@ function dudt!(du, u, p, t)
             0.5 * abs(au) * (u_face[i, j, 1, k] - u_face[i, j-1, 3, k])
         )
     end
-
+    
     rhs1 = zeros(nx, ny, nsp, nsp)
     for i = 1:nx, j = 1:ny, k = 1:nsp, l = 1:nsp
         rhs1[i, j, k, l] = dot(f[i, j, :, l, 1], lpdm[k, :])
@@ -83,15 +129,16 @@ function dudt!(du, u, p, t)
 end
 
 tspan = (0.0, 1.0)
+a = [1.0, 1.0]
 p = (ps.J, ps.ll, ps.lr, ps.dhl, ps.dhr, ps.dl, a[1], a[2])
 prob = ODEProblem(dudt!, u0, tspan, p)
 
 dt = 0.01
 nt = tspan[2] ÷ dt |> Int
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Tsit5(), save_everystep = false, adaptive = false, dt = dt)
 
-@showprogress for iter = 1:nt
+@showprogress for iter = 1:10#nt
     step!(itg)
 end
 
-contourf(ps.x[:, 1], ps.y[1, :], itg.u[:, :, 2, 2])
+contourf(ps.x, ps.y, itg.u[:, :, 2, 2], aspect_ratio=1, legend=true)

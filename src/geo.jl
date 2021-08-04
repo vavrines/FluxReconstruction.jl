@@ -260,7 +260,7 @@ J varies from point to point within an element for a general linear quadrilatera
 As a special case, the Jacobian matrix is a constant for each element in rectangular mesh.
 
 """
-function rs_jacobi(r, s, vertices::T) where {T<:AbstractMatrix}
+function rs_jacobi(r::T, s::T, vertices::T1) where {T<:Real,T1<:AbstractMatrix}
     xr, yr = @. (s - 1.0) * vertices[1, :] / 4 + (1.0 - s) * vertices[2, :] / 4 +
         (s + 1.0) * vertices[3, :] / 4 - (s + 1.0) * vertices[4, :] / 4
     xs, ys = @. (r - 1.0) * vertices[1, :] / 4 - (r + 1.0) * vertices[2, :] / 4 +
@@ -271,21 +271,21 @@ function rs_jacobi(r, s, vertices::T) where {T<:AbstractMatrix}
     return J
 end
 
-rs_jacobi(r::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} = [rs_jacobi(r[i], r[j], vertices) for i in eachindex(r), j in eachindex(r)]
+rs_jacobi(r::T, s::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} = 
+    [rs_jacobi(r[i], s[i], vertices) for i in eachindex(r)]
+    
+rs_jacobi(r::T, s::T, vertices::T1) where {T<:AbstractMatrix,T1<:AbstractMatrix} = 
+    [rs_jacobi(r[i], s[i], vertices) for i in axes(r, 1), j in axes(s, 2)]
 
-rs_jacobi(r, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = [rs_jacobi(r, @view vertices[i, j, :, :]) for i in axes(vertices, 1), j in axes(vertices, 2)]
-#=points = zeros(eltype(x), axes(x, 1), axes(x, 2), 4, 2) # i, j, vertex, dirc
-for j in axes(points, 2), i in axes(points, 1)
-    points[i, j, 1, 1] = x[i, j] - 0.5 * dx[i, j]
-    points[i, j, 2, 1] = x[i, j] + 0.5 * dx[i, j]
-    points[i, j, 3, 1] = x[i, j] + 0.5 * dx[i, j]
-    points[i, j, 4, 1] = x[i, j] - 0.5 * dx[i, j]
+rs_jacobi(r, s, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = 
+    [rs_jacobi(r, s, @view vertices[i, j, :, :]) for i in axes(vertices, 1), j in axes(vertices, 2)]
 
-    points[i, j, 1, 2] = y[i, j] - 0.5 * dy[i, j]
-    points[i, j, 2, 2] = y[i, j] - 0.5 * dy[i, j]
-    points[i, j, 3, 2] = y[i, j] + 0.5 * dy[i, j]
-    points[i, j, 4, 2] = y[i, j] + 0.5 * dy[i, j]
-end=#
+# syntax sugar for inner points with same samplings in x and y
+rs_jacobi(r::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} = 
+    [rs_jacobi(r[i], r[j], vertices) for i in eachindex(r), j in eachindex(r)]
+
+rs_jacobi(r, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = 
+    [rs_jacobi(r, @view vertices[i, j, :, :]) for i in axes(vertices, 1), j in axes(vertices, 2)]
 
 
 """

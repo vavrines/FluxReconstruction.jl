@@ -88,15 +88,82 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr, t0 = 1.0) w
     return nothing
 end
 
+function positive_limiter(u::AbstractArray{T,3}, γ, weights, ll, lr, t0 = 1.0) where {T<:AbstractFloat}
+    # mean values
+    u_mean = [sum(u[:, :, j] .* weights) for j in axes(u, 2)]
+    t_mean = 1.0 / conserve_prim(u_mean, γ)[end]
+    p_mean = 0.5 * u_mean[1] * t_mean
+    
+    # boundary values
+    ρb = zeros(4, length(ll))
+    mxb = zeros(4, length(ll))
+    myb = zeros(4, length(ll))    
+    eb = zeros(4, length(ll))
+    for j in axes(ρb, 2)
+        ρb[1, j] = dot(u[j, :, 1], ll)
+        ρb[2, j] = dot(u[:, j, 1], lr)
+        ρb[3, j] = dot(u[j, :, 1], lr)
+        ρb[4, j] = dot(u[:, j, 1], ll)
+        mxb[1, j] = dot(u[j, :, 2], ll)
+        mxb[2, j] = dot(u[:, j, 2], lr)
+        mxb[3, j] = dot(u[j, :, 2], lr)
+        mxb[4, j] = dot(u[:, j, 2], ll)
+        myb[1, j] = dot(u[j, :, 3], ll)
+        myb[2, j] = dot(u[:, j, 3], lr)
+        myb[3, j] = dot(u[j, :, 3], lr)
+        myb[4, j] = dot(u[:, j, 3], ll)
+        eb[1, j] = dot(u[j, :, 4], ll)
+        eb[2, j] = dot(u[:, j, 4], lr)
+        eb[3, j] = dot(u[j, :, 4], lr)
+        eb[4, j] = dot(u[:, j, 4], ll)
+    end
+
+    # density corrector
+    ϵ = min(1e-13, u_mean[1], p_mean)
+    ρ_min = min(minimum(ρb), minimum(u[:, :, 1])) # density minumum can emerge at both solution and flux points
+    t1 = min((u_mean[1] - ϵ) / (u_mean[1] - ρ_min + 1e-8), 1.0)
+    @assert 0 < t1 <= 1 "incorrect range of limiter parameter t"
+
+    for j in axes(u, 2), i in axes(u, 1)
+        u[i, j, 1] = t1 * (u[i, j, 1] - u_mean[1]) + u_mean[1]
+    end
+
+    # energy corrector
+    tj = Float64[]
+    for j = 1:length(ll), i = 1:4
+        prim = conserve_prim([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], γ)
+
+        if prim[end] < ϵ
+            prob = NonlinearProblem{false}(tj_equation, 1.0, ([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], u_mean, γ, ϵ))
+            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            push!(tj, sol.u)
+        end
+    end
+    for j in axes(u, 2), i in axes(u, 1) # solution points
+        prim = conserve_prim(u[i, j, :], γ)
+
+        if prim[end] < ϵ
+            prob = NonlinearProblem{false}(tj_equation, 1.0, (u[i, j, :], u_mean, γ, ϵ))
+            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            push!(tj, sol.u)
+        end
+    end
+
+    if length(tj) > 0
+        t2 = minimum(tj, t0)
+        for k in axes(u, 3), j in axes(u, 2), i in axes(u, 1)
+            u[i, j, k] = t2 * (u[i, j, k] - u_mean[k]) + u_mean[k]
+        end
+    end
+
+    return nothing
+end
+
 function tj_equation(t, p)
     ũ, u_mean, γ, ϵ = p
     
-    u_temp = [
-        t * (ũ[1] - u_mean[1]) + u_mean[1],
-        t * (ũ[2] - u_mean[2]) + u_mean[2],
-        t * (ũ[3] - u_mean[3]) + u_mean[3],
-    ]
+    u_temp = [t * (ũ[i] - u_mean[i]) + u_mean[i] for i in eachindex(u_mean)]
     prim_temp = conserve_prim(u_temp, γ)
-
-    return 0.5 * prim_temp[1] / prim_temp[3] - ϵ
+    
+    return 0.5 * prim_temp[1] / prim_temp[end] - ϵ
 end
