@@ -261,31 +261,37 @@ As a special case, the Jacobian matrix is a constant for each element in rectang
 
 """
 function rs_jacobi(r::T, s::T, vertices::T1) where {T<:Real,T1<:AbstractMatrix}
-    xr, yr = @. (s - 1.0) * vertices[1, :] / 4 + (1.0 - s) * vertices[2, :] / 4 +
-        (s + 1.0) * vertices[3, :] / 4 - (s + 1.0) * vertices[4, :] / 4
+    xr, yr = @. (s - 1.0) * vertices[1, :] / 4 +
+       (1.0 - s) * vertices[2, :] / 4 +
+       (s + 1.0) * vertices[3, :] / 4 - (s + 1.0) * vertices[4, :] / 4
     xs, ys = @. (r - 1.0) * vertices[1, :] / 4 - (r + 1.0) * vertices[2, :] / 4 +
-        (r + 1.0) * vertices[3, :] / 4 + (1.0 - r) * vertices[4, :] / 4
-    
+       (r + 1.0) * vertices[3, :] / 4 +
+       (1.0 - r) * vertices[4, :] / 4
+
     J = [xr xs; yr ys]
 
     return J
 end
 
-rs_jacobi(r::T, s::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} = 
+rs_jacobi(r::T, s::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} =
     [rs_jacobi(r[i], s[i], vertices) for i in eachindex(r)]
-    
-rs_jacobi(r::T, s::T, vertices::T1) where {T<:AbstractMatrix,T1<:AbstractMatrix} = 
+
+rs_jacobi(r::T, s::T, vertices::T1) where {T<:AbstractMatrix,T1<:AbstractMatrix} =
     [rs_jacobi(r[i], s[i], vertices) for i in axes(r, 1), j in axes(s, 2)]
 
-rs_jacobi(r, s, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = 
-    [rs_jacobi(r, s, @view vertices[i, j, :, :]) for i in axes(vertices, 1), j in axes(vertices, 2)]
+rs_jacobi(r, s, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = [
+    rs_jacobi(r, s, @view vertices[i, j, :, :]) for i in axes(vertices, 1),
+    j in axes(vertices, 2)
+]
 
 # syntax sugar for inner points with same samplings in x and y
-rs_jacobi(r::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} = 
+rs_jacobi(r::T, vertices::T1) where {T<:AbstractVector,T1<:AbstractMatrix} =
     [rs_jacobi(r[i], r[j], vertices) for i in eachindex(r), j in eachindex(r)]
 
-rs_jacobi(r, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = 
-    [rs_jacobi(r, @view vertices[i, j, :, :]) for i in axes(vertices, 1), j in axes(vertices, 2)]
+rs_jacobi(r, vertices::AbstractArray{T,4}) where {T<:AbstractFloat} = [
+    rs_jacobi(r, @view vertices[i, j, :, :]) for i in axes(vertices, 1),
+    j in axes(vertices, 2)
+]
 
 
 """

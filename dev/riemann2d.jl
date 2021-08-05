@@ -30,7 +30,7 @@ begin
         2.0, # Mach
         1.0,
         1.0, # K
-        5/3,
+        5 / 3,
         0.81,
         1.0,
         0.5,
@@ -44,7 +44,7 @@ function dudt!(du, u, p, t)
     du .= 0.0
 
     J, ll, lr, dhl, dhr, lpdm, γ = p
-    
+
     nx = size(u, 1)
     ny = size(u, 2)
     nsp = size(u, 3)
@@ -73,14 +73,14 @@ function dudt!(du, u, p, t)
         end
     end
 
-    fx_interaction = zeros(nx+1, ny, nsp, 4)
+    fx_interaction = zeros(nx + 1, ny, nsp, 4)
     for i = 2:nx, j = 1:ny, k = 1:nsp
         fw = @view fx_interaction[i, j, k, :]
         uL = @view u_face[i-1, j, 2, k, :]
         uR = @view u_face[i, j, 4, k, :]
         flux_hll!(fw, uL, uR, γ, 1.0)
     end
-    fy_interaction = zeros(nx, ny+1, nsp, 4)
+    fy_interaction = zeros(nx, ny + 1, nsp, 4)
     for i = 1:nx, j = 2:ny, k = 1:nsp
         fw = @view fy_interaction[i, j, k, :]
         uL = local_frame(u_face[i, j-1, 3, k, :], 0.0, 1.0)
@@ -101,11 +101,24 @@ function dudt!(du, u, p, t)
     for i = 2:nx-1, j = 2:ny-1, k = 1:nsp, l = 1:nsp, m = 1:4
         du[i, j, k, l, m] =
             -(
-                rhs1[i, j, k, l, m] + rhs2[i, j, k, l, m] +
-                (fx_interaction[i, j, l, m] * inv(J[i, j][k, l])[1, 1] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fx_interaction[i+1, j, l, m] * inv(J[i, j][k, l])[1, 1] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fy_interaction[i, j, k, m] * inv(J[i, j][k, l])[2, 2] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fy_interaction[i, j+1, k, m] * inv(J[i, j][k, l])[2, 2] - f_face[i, j, 3, k, m, 2]) * dhr[l]
+                rhs1[i, j, k, l, m] +
+                rhs2[i, j, k, l, m] +
+                (
+                    fx_interaction[i, j, l, m] * inv(J[i, j][k, l])[1, 1] -
+                    f_face[i, j, 4, l, m, 1]
+                ) * dhl[k] +
+                (
+                    fx_interaction[i+1, j, l, m] * inv(J[i, j][k, l])[1, 1] -
+                    f_face[i, j, 2, l, m, 1]
+                ) * dhr[k] +
+                (
+                    fy_interaction[i, j, k, m] * inv(J[i, j][k, l])[2, 2] -
+                    f_face[i, j, 1, k, m, 2]
+                ) * dhl[l] +
+                (
+                    fy_interaction[i, j+1, k, m] * inv(J[i, j][k, l])[2, 2] -
+                    f_face[i, j, 3, k, m, 2]
+                ) * dhr[l]
             )
     end
 
@@ -118,7 +131,7 @@ dt = 0.001
 nt = tspan[2] ÷ dt |> Int
 
 # wave in x direction
-u0 = OffsetArray{Float64}(undef, 1:ps.nx, 1:ps.ny, deg+1, deg+1, 4)
+u0 = OffsetArray{Float64}(undef, 1:ps.nx, 1:ps.ny, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
     if ps.x[i, j] > 0.5 && ps.y[i, j] > 0.5
         prim = [1, 0.75, -0.5, 0.5]
@@ -139,9 +152,9 @@ itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
 @showprogress for iter = 1:5#nt
     step!(itg)
 
-    for i = 1:size(itg.u, 1), j = 1size(itg.u, 2)
+    for i = 1:size(itg.u, 1), j in 1size(itg.u, 2)
         utmp = itg.u[i, j, :, :, :]
-        
+
         for s = 1:4
             û = iV * itg.u[i, j, :, :, s][:]
             FR.modal_filter!(û, 1e-2; filter = :l2)
@@ -154,12 +167,12 @@ end
 #contourf(ps.x, ps.y, u0[:, :, 2, 2, 1])
 contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 1])
 
-itg.u[25,25,2,2,:]
+itg.u[25, 25, 2, 2, :]
 
 using NodesAndModes
 
 r = hcat(ps.xpl, ps.xpl, ps.xpl)
 s = permutedims(r)
 
-V = basis(Quad(),2,r[:],s[:])[1]
+V = basis(Quad(), 2, r[:], s[:])[1]
 iV = inv(V)

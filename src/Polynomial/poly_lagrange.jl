@@ -22,7 +22,7 @@ end
 
 function lagrange_point(sp, x::AbstractVector{T}) where {T<:Real}
     lp = zeros(eltype(sp), axes(x, 1), axes(sp, 1))
-    
+
     for i in axes(lp, 1)
         lp[i, :] .= lagrange_point(sp, x[i])
     end

@@ -3,7 +3,8 @@
 # ------------------------------------------------------------
 
 function Base.getproperty(x::AbstractStructFRSpace, name::Symbol)
-    options = union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D))
+    options =
+        union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D))
 
     if name in options
         return getfield(x.base, name)
@@ -22,7 +23,13 @@ end
 
 function Base.propertynames(x::AbstractStructFRSpace, private::Bool = false)
     public = fieldnames(typeof(x))
-    true ? ((public ∪ union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D)))...,) : public
+    true ?
+    (
+        (
+            public ∪
+            union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D))
+        )...,
+    ) : public
 end
 
 function Base.propertynames(x::AbstractUnstructFRSpace, private::Bool = false)

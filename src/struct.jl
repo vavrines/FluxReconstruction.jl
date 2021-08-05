@@ -153,12 +153,12 @@ function FRPSpace2D(
         end
     end
 
-    ri = zeros(eltype(ps.x), 4, deg+1)
+    ri = zeros(eltype(ps.x), 4, deg + 1)
     ri[1, :] .= r
     ri[2, :] .= 1.0
     ri[3, :] .= r[end:-1:1]
     ri[4, :] .= 0.0
-    si = zeros(eltype(ps.x), 4, deg+1)
+    si = zeros(eltype(ps.x), 4, deg + 1)
     si[1, :] .= 0.0
     si[2, :] .= r
     si[3, :] .= 1.0
@@ -222,13 +222,10 @@ function FRPSpace2D(
     )
 end
 
-function FRPSpace2D(
-    base::AbstractPhysicalSpace2D,
-    deg::Integer
-)
+function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
     r = legendre_point(deg) .|> eltype(base.x)
     J = rs_jacobi(r, base.vertices)
-    
+
     iJ = deepcopy(J)
     for i in axes(iJ, 1), j in axes(iJ, 2)
         for k = 1:deg+1, l = 1:deg+1
@@ -236,13 +233,13 @@ function FRPSpace2D(
         end
     end
 
-    ri = zeros(eltype(base.x), 4, deg+1)
+    ri = zeros(eltype(base.x), 4, deg + 1)
     ri[1, :] .= r
     ri[2, :] .= 1.0
     ri[3, :] .= r[end:-1:1]
     ri[4, :] .= 0.0
 
-    si = zeros(eltype(base.x), 4, deg+1)
+    si = zeros(eltype(base.x), 4, deg + 1)
     si[1, :] .= 0.0
     si[2, :] .= r
     si[3, :] .= 1.0
@@ -250,9 +247,16 @@ function FRPSpace2D(
 
     Ji = rs_jacobi(ri, si, base.vertices)
 
-    xpg = OffsetArray{eltype(base.x)}(undef, axes(base.x, 1), axes(base.y, 2), 1:deg+1, 1:deg+1, 1:2)
+    xpg = OffsetArray{eltype(base.x)}(
+        undef,
+        axes(base.x, 1),
+        axes(base.y, 2),
+        1:deg+1,
+        1:deg+1,
+        1:2,
+    )
     for i in axes(xpg, 1), j in axes(xpg, 2), k = 1:deg+1, l = 1:deg+1
-        @. xpg[i, j, k, l, :] = 
+        @. xpg[i, j, k, l, :] =
             (r[k] - 1.0) * (r[l] - 1.0) / 4 * base.vertices[i, j, 1, :] +
             (r[k] + 1.0) * (1.0 - r[l]) / 4 * base.vertices[i, j, 2, :] +
             (r[k] + 1.0) * (r[l] + 1.0) / 4 * base.vertices[i, j, 3, :] +

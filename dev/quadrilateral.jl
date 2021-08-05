@@ -6,14 +6,17 @@ deg = 2
 ps = FRPSpace2D(ps0, deg)
 a = [0.1, 0.1]
 
-u0 = zeros(ps.nx, ps.ny, deg+1, deg+1)
+u0 = zeros(ps.nx, ps.ny, deg + 1, deg + 1)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
-    u0[i, j, k, l] = max(exp(-300 * ((ps.xpg[i, j, k, l, 1] - 0.5)^2 + (ps.xpg[i, j, k, l, 2] - 0.5)^2)), 1e-2)
+    u0[i, j, k, l] = max(
+        exp(-300 * ((ps.xpg[i, j, k, l, 1] - 0.5)^2 + (ps.xpg[i, j, k, l, 2] - 0.5)^2)),
+        1e-2,
+    )
 end
 
 function dudt!(du, u, p, t)
     J, ll, lr, dhl, dhr, lpdm, ax, ay = p
-    
+
     nx = size(u, 1)
     ny = size(u, 2)
     nsp = size(u, 3)
@@ -40,18 +43,20 @@ function dudt!(du, u, p, t)
         end
     end
 
-    fx_interaction = zeros(nx+1, ny, nsp)
+    fx_interaction = zeros(nx + 1, ny, nsp)
     for i = 2:nx, j = 1:ny, k = 1:nsp
-        au = (f_face[i, j, 4, k, 1] - f_face[i-1, j, 2, k, 1]) /
+        au =
+            (f_face[i, j, 4, k, 1] - f_face[i-1, j, 2, k, 1]) /
             (u_face[i, j, 4, k] - u_face[i-1, j, 2, k] + 1e-6)
         fx_interaction[i, j, k] = (
             0.5 * (f_face[i, j, 4, k, 1] + f_face[i-1, j, 2, k, 1]) -
             0.5 * abs(au) * (u_face[i, j, 4, k] - u_face[i-1, j, 2, k])
         )
     end
-    fy_interaction = zeros(nx, ny+1, nsp)
+    fy_interaction = zeros(nx, ny + 1, nsp)
     for i = 1:nx, j = 2:ny, k = 1:nsp
-        au = (f_face[i, j, 1, k, 2] - f_face[i, j-1, 3, k, 2]) /
+        au =
+            (f_face[i, j, 1, k, 2] - f_face[i, j-1, 3, k, 2]) /
             (u_face[i, j, 1, k] - u_face[i, j-1, 3, k] + 1e-6)
         fy_interaction[i, j, k] = (
             0.5 * (f_face[i, j, 1, k, 2] + f_face[i, j-1, 3, k, 2]) -
@@ -71,7 +76,8 @@ function dudt!(du, u, p, t)
     for i = 2:nx-1, j = 2:ny-1, k = 1:nsp, l = 1:nsp
         du[i, j, k, l] =
             -(
-                rhs1[i, j, k, l] + rhs2[i, j, k, l] +
+                rhs1[i, j, k, l] +
+                rhs2[i, j, k, l] +
                 (fx_interaction[i, j, l] - f_face[i, j, 4, l, 1]) * dhl[k] +
                 (fx_interaction[i+1, j, l] - f_face[i, j, 2, l, 1]) * dhr[k] +
                 (fy_interaction[i, j, k] - f_face[i, j, 1, k, 2]) * dhl[l] +

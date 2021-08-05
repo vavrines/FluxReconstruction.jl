@@ -30,7 +30,7 @@ begin
         2.0, # Mach
         1.0,
         1.0, # K
-        5/3,
+        5 / 3,
         0.81,
         1.0,
         0.5,
@@ -41,7 +41,7 @@ begin
 end
 
 #u0 = zeros(ps.nr, ps.nθ, deg+1, deg+1, 4)
-u0 = OffsetArray{Float64}(undef, 1:ps.nr, 0:ps.nθ+1, deg+1, deg+1, 4)
+u0 = OffsetArray{Float64}(undef, 1:ps.nr, 0:ps.nθ+1, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
     #prim = [1.0, ks.gas.Ma, 0.0, 1.0]
     prim = [1.0, 1.0, 0.0, 1.0]
@@ -56,7 +56,7 @@ end
 
 n2 = [[0.0, 0.0] for i = 1:ps.nr, j = 1:ps.nθ+1]
 for i = 1:ps.nr, j = 1:ps.nθ+1
-    angle = π/2 + sum(ps.dθ[1, 1:j-1])
+    angle = π / 2 + sum(ps.dθ[1, 1:j-1])
     n2[i, j] .= [cos(angle), sin(angle)]
 end
 
@@ -64,7 +64,7 @@ function dudt!(du, u, p, t)
     du .= 0.0
 
     J, ll, lr, dhl, dhr, lpdm, γ = p
-    
+
     nx = size(u, 1)
     ny = size(u, 2) - 2
     nsp = size(u, 3)
@@ -96,11 +96,11 @@ function dudt!(du, u, p, t)
         end
     end
 
-    fx_interaction = zeros(nx+1, ny, nsp, 4)
+    fx_interaction = zeros(nx + 1, ny, nsp, 4)
     for i = 2:nx, j = 1:ny, k = 1:nsp
-        fx_interaction[i, j, k, :] .= 
-        0.5 .* (f_face[i-1, j, 2, k, :, 1] .+ f_face[i, j, 4, k, :, 1]) .-
-        dt .* (u_face[i, j, 4, k, :] - u_face[i-1, j, 2, k, :])
+        fx_interaction[i, j, k, :] .=
+            0.5 .* (f_face[i-1, j, 2, k, :, 1] .+ f_face[i, j, 4, k, :, 1]) .-
+            dt .* (u_face[i, j, 4, k, :] - u_face[i-1, j, 2, k, :])
     end
 
     for j = 1:ny, k = 1:nsp
@@ -119,20 +119,19 @@ function dudt!(du, u, p, t)
         fg, gg = euler_flux(ub, γ)
         fb = zeros(4)
         for m = 1:4
-            fb[m] = (inv(ps.Ji[i, j][4, k]) * [fg[m], gg[m]])[1]
+            fb[m] = (inv(ps.Ji[i, j][4, k])*[fg[m], gg[m]])[1]
         end
 
 
-        fx_interaction[1, j, k, :] .= 
-        0.5 .* (fb .+ f_face[i, j, 4, k, :, 1]) .-
-        dt .* (u_face[i, j, 4, k, :] - ub)
-        
+        fx_interaction[1, j, k, :] .=
+            0.5 .* (fb .+ f_face[i, j, 4, k, :, 1]) .- dt .* (u_face[i, j, 4, k, :] - ub)
+
     end
 
 
-    fy_interaction = zeros(nx, ny+1, nsp, 4)
+    fy_interaction = zeros(nx, ny + 1, nsp, 4)
     for i = 1:nx, j = 1:ny+1, k = 1:nsp
-        fy_interaction[i, j, k, :] .= 
+        fy_interaction[i, j, k, :] .=
             0.5 .* (f_face[i, j-1, 3, k, :, 2] .+ f_face[i, j, 1, k, :, 2]) .-
             dt .* (u_face[i, j, 1, k, :] - u_face[i, j-1, 3, k, :])
     end
@@ -149,7 +148,8 @@ function dudt!(du, u, p, t)
     for i = 2:nx-1, j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
         du[i, j, k, l, m] =
             -(
-                rhs1[i, j, k, l, m] + rhs2[i, j, k, l, m] +
+                rhs1[i, j, k, l, m] +
+                rhs2[i, j, k, l, m] +
                 (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
                 (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
                 (fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
@@ -182,7 +182,7 @@ itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
     step!(itg)
 end
 
-contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 2], aspect_ratio=1, legend=true)
+contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 2], aspect_ratio = 1, legend = true)
 
 sol = zeros(ps.nr, ps.nθ, 4)
 for i = 1:ps.nr, j = 1:ps.nθ
@@ -190,4 +190,10 @@ for i = 1:ps.nr, j = 1:ps.nθ
     sol[i, j, 4] = 1 / sol[i, j, 4]
 end
 
-contourf(ps.x[1:ps.nr,1:ps.nθ], ps.y[1:ps.nr,1:ps.nθ], sol[:, :, 2], aspect_ratio=1, legend=true)
+contourf(
+    ps.x[1:ps.nr, 1:ps.nθ],
+    ps.y[1:ps.nr, 1:ps.nθ],
+    sol[:, :, 2],
+    aspect_ratio = 1,
+    legend = true,
+)

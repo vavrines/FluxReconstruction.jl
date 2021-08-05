@@ -72,13 +72,13 @@ function filter_exp!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     N = length(u) - 1
     s = args[1]
     Nc = begin
-        if length(args)>1
+        if length(args) > 1
             args[2]
         else
             0
         end
     end
-    
+
     σ = filter_exp1d(N, s, Nc)
     u .*= σ
 
@@ -89,16 +89,16 @@ function filter_houli!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     N = length(u) - 1
     s = args[1]
     Nc = begin
-        if length(args)>1
+        if length(args) > 1
             args[2]
         else
             0
         end
     end
-    
+
     σ = filter_exp1d(N, s, Nc)
     for i in eachindex(σ)
-        if i/length(σ) <= 2/3
+        if i / length(σ) <= 2 / 3
             σ[i] = 1.0
         end
     end

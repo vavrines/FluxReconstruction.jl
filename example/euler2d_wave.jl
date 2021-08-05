@@ -1,4 +1,4 @@
- # ============================================================
+# ============================================================
 # 2D traveling wave solution for the Euler equations
 # ============================================================
 
@@ -34,7 +34,7 @@ begin
         2.0, # Mach
         1.0,
         1.0, # K
-        5/3,
+        5 / 3,
         0.81,
         1.0,
         0.5,
@@ -48,7 +48,7 @@ function dudt!(du, u, p, t)
     du .= 0.0
 
     J, ll, lr, dhl, dhr, lpdm, γ = p
-    
+
     nx = size(u, 1) - 2
     ny = size(u, 2) - 2
     nsp = size(u, 3)
@@ -77,14 +77,14 @@ function dudt!(du, u, p, t)
         end
     end
 
-    fx_interaction = zeros(nx+1, ny, nsp, 4)
+    fx_interaction = zeros(nx + 1, ny, nsp, 4)
     for i = 1:nx+1, j = 1:ny, k = 1:nsp
         fw = @view fx_interaction[i, j, k, :]
         uL = @view u_face[i-1, j, 2, k, :]
         uR = @view u_face[i, j, 4, k, :]
         flux_hll!(fw, uL, uR, γ, 1.0)
     end
-    fy_interaction = zeros(nx, ny+1, nsp, 4)
+    fy_interaction = zeros(nx, ny + 1, nsp, 4)
     for i = 1:nx, j = 1:ny+1, k = 1:nsp
         fw = @view fy_interaction[i, j, k, :]
         uL = local_frame(u_face[i, j-1, 3, k, :], 0.0, 1.0)
@@ -105,11 +105,24 @@ function dudt!(du, u, p, t)
     for i = 1:nx, j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
         du[i, j, k, l, m] =
             -(
-                rhs1[i, j, k, l, m] + rhs2[i, j, k, l, m] +
-                (fx_interaction[i, j, l, m] * inv(J[i, j][k, l])[1, 1] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fx_interaction[i+1, j, l, m] * inv(J[i, j][k, l])[1, 1] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fy_interaction[i, j, k, m] * inv(J[i, j][k, l])[2, 2] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fy_interaction[i, j+1, k, m] * inv(J[i, j][k, l])[2, 2] - f_face[i, j, 3, k, m, 2]) * dhr[l]
+                rhs1[i, j, k, l, m] +
+                rhs2[i, j, k, l, m] +
+                (
+                    fx_interaction[i, j, l, m] * inv(J[i, j][k, l])[1, 1] -
+                    f_face[i, j, 4, l, m, 1]
+                ) * dhl[k] +
+                (
+                    fx_interaction[i+1, j, l, m] * inv(J[i, j][k, l])[1, 1] -
+                    f_face[i, j, 2, l, m, 1]
+                ) * dhr[k] +
+                (
+                    fy_interaction[i, j, k, m] * inv(J[i, j][k, l])[2, 2] -
+                    f_face[i, j, 1, k, m, 2]
+                ) * dhl[l] +
+                (
+                    fy_interaction[i, j+1, k, m] * inv(J[i, j][k, l])[2, 2] -
+                    f_face[i, j, 3, k, m, 2]
+                ) * dhr[l]
             )
     end
 
@@ -122,7 +135,7 @@ dt = 0.002
 nt = tspan[2] ÷ dt |> Int
 
 # wave in x direction
-u0 = OffsetArray{Float64}(undef, 0:ps.nx+1, 0:ps.ny+1, deg+1, deg+1, 4)
+u0 = OffsetArray{Float64}(undef, 0:ps.nx+1, 0:ps.ny+1, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
     ρ = 1.0 + 0.1 * sin(2π * ps.xpg[i, j, k, l, 1])
     prim = [ρ, 1.0, 0.0, ρ]
@@ -149,7 +162,7 @@ plot(ps.x[1:ps.nx, 1], u0[1:ps.nx, 1, 2, 2, 1])
 plot!(ps.x[1:ps.nx, 1], itg.u[1:ps.nx, 1, 2, 2, 1])
 
 # wave in y direction
-u0 = OffsetArray{Float64}(undef, 0:ps.nx+1, 0:ps.ny+1, deg+1, deg+1, 4)
+u0 = OffsetArray{Float64}(undef, 0:ps.nx+1, 0:ps.ny+1, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
     ρ = 1.0 + 0.1 * sin(2π * ps.xpg[i, j, k, l, 2])
     prim = [ρ, 0.0, 1.0, ρ]

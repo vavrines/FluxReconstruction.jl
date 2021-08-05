@@ -36,12 +36,19 @@ _R. Vandenhoeck and A. Lani. Implicit high-order flux reconstruction solver for 
 - @arg ll&lr: Langrange polynomials at left/right edge
 - @arg t0=1.0: minimum limiting slope
 """
-function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr, t0 = 1.0) where {T<:AbstractFloat}
+function positive_limiter(
+    u::AbstractMatrix{T},
+    γ,
+    weights,
+    ll,
+    lr,
+    t0 = 1.0,
+) where {T<:AbstractFloat}
     # mean values
     u_mean = [sum(u[:, j] .* weights) for j in axes(u, 2)]
     t_mean = 1.0 / conserve_prim(u_mean, γ)[end]
     p_mean = 0.5 * u_mean[1] * t_mean
-    
+
     # boundary values
     ρb = [dot(u[:, 1], ll), dot(u[:, 1], lr)]
     mb = [dot(u[:, 2], ll), dot(u[:, 2], lr)]
@@ -63,7 +70,11 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr, t0 = 1.0) w
         prim = conserve_prim([ρb[i], mb[i], eb[i]], γ)
 
         if prim[end] < ϵ
-            prob = NonlinearProblem{false}(tj_equation, 1.0, ([ρb[i], mb[i], eb[i]], u_mean, γ, ϵ))
+            prob = NonlinearProblem{false}(
+                tj_equation,
+                1.0,
+                ([ρb[i], mb[i], eb[i]], u_mean, γ, ϵ),
+            )
             sol = solve(prob, NewtonRaphson(), tol = 1e-9)
             push!(tj, sol.u)
         end
@@ -88,16 +99,23 @@ function positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr, t0 = 1.0) w
     return nothing
 end
 
-function positive_limiter(u::AbstractArray{T,3}, γ, weights, ll, lr, t0 = 1.0) where {T<:AbstractFloat}
+function positive_limiter(
+    u::AbstractArray{T,3},
+    γ,
+    weights,
+    ll,
+    lr,
+    t0 = 1.0,
+) where {T<:AbstractFloat}
     # mean values
     u_mean = [sum(u[:, :, j] .* weights) for j in axes(u, 2)]
     t_mean = 1.0 / conserve_prim(u_mean, γ)[end]
     p_mean = 0.5 * u_mean[1] * t_mean
-    
+
     # boundary values
     ρb = zeros(4, length(ll))
     mxb = zeros(4, length(ll))
-    myb = zeros(4, length(ll))    
+    myb = zeros(4, length(ll))
     eb = zeros(4, length(ll))
     for j in axes(ρb, 2)
         ρb[1, j] = dot(u[j, :, 1], ll)
@@ -134,7 +152,11 @@ function positive_limiter(u::AbstractArray{T,3}, γ, weights, ll, lr, t0 = 1.0) 
         prim = conserve_prim([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], γ)
 
         if prim[end] < ϵ
-            prob = NonlinearProblem{false}(tj_equation, 1.0, ([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], u_mean, γ, ϵ))
+            prob = NonlinearProblem{false}(
+                tj_equation,
+                1.0,
+                ([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], u_mean, γ, ϵ),
+            )
             sol = solve(prob, NewtonRaphson(), tol = 1e-9)
             push!(tj, sol.u)
         end
@@ -161,9 +183,9 @@ end
 
 function tj_equation(t, p)
     ũ, u_mean, γ, ϵ = p
-    
+
     u_temp = [t * (ũ[i] - u_mean[i]) + u_mean[i] for i in eachindex(u_mean)]
     prim_temp = conserve_prim(u_temp, γ)
-    
+
     return 0.5 * prim_temp[1] / prim_temp[end] - ϵ
 end

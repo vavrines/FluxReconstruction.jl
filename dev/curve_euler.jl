@@ -30,7 +30,7 @@ begin
         2.0, # Mach
         1.0,
         1.0, # K
-        5/3,
+        5 / 3,
         0.81,
         1.0,
         0.5,
@@ -40,9 +40,9 @@ begin
     ks = SolverSet(set, ps0, vs, gas, ib)
 end
 
-u0 = zeros(ps.nr, ps.nθ, deg+1, deg+1, 4)
+u0 = zeros(ps.nr, ps.nθ, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
-    ρ = max(exp(-10 * ((ps.xpg[i, j, k, l, 1])^2 + (ps.xpg[i, j, k, l, 2] - 3.)^2)), 1e-2)
+    ρ = max(exp(-10 * ((ps.xpg[i, j, k, l, 1])^2 + (ps.xpg[i, j, k, l, 2] - 3.0)^2)), 1e-2)
     prim = [ρ, 0.0, 0.0, 1.0]
     u0[i, j, k, l, :] .= prim_conserve(prim, ks.gas.γ)
 end
@@ -55,7 +55,7 @@ end
 
 n2 = [[0.0, 0.0] for i = 1:ps.nr, j = 1:ps.nθ+1]
 for i = 1:ps.nr, j = 1:ps.nθ+1
-    angle = π/2 + sum(ps.dθ[1, 1:j-1])
+    angle = π / 2 + sum(ps.dθ[1, 1:j-1])
     n2[i, j] .= [cos(angle), sin(angle)]
 end
 
@@ -63,7 +63,7 @@ function dudt!(du, u, p, t)
     du .= 0.0
 
     J, ll, lr, dhl, dhr, lpdm, γ = p
-    
+
     nx = size(u, 1) - 2
     ny = size(u, 2) - 2
     nsp = size(u, 3)
@@ -92,7 +92,7 @@ function dudt!(du, u, p, t)
         end
     end
 
-    fx_interaction = zeros(nx+1, ny, nsp, 4)
+    fx_interaction = zeros(nx + 1, ny, nsp, 4)
     for i = 2:nx, j = 1:ny, k = 1:nsp
         #=fw = @view fx_interaction[i, j, k, :]
         uL = local_frame(u_face[i-1, j, 2, k, :], n1[i, j][1], n1[i, j][2])
@@ -100,11 +100,11 @@ function dudt!(du, u, p, t)
         flux_hll!(fw, uL, uR, γ, 1.0)
         fw .= global_frame(fw, n1[i, j][1], n1[i, j][2])=#
 
-        fx_interaction[i, j, k, :] .= 
+        fx_interaction[i, j, k, :] .=
             0.5 .* (f_face[i-1, j, 2, k, :, 1] .+ f_face[i, j, 4, k, :, 1]) .-
             40dt .* (u_face[i, j, 4, k, :] - u_face[i-1, j, 2, k, :])
     end
-    fy_interaction = zeros(nx, ny+1, nsp, 4)
+    fy_interaction = zeros(nx, ny + 1, nsp, 4)
     for i = 1:nx, j = 2:ny, k = 1:nsp
         #=fw = @view fy_interaction[i, j, k, :]
         uL = local_frame(u_face[i, j-1, 3, k, :], n2[i, j][1], n2[i, j][2])
@@ -112,7 +112,7 @@ function dudt!(du, u, p, t)
         flux_hll!(fw, uL, uR, γ, 1.0)
         fw .= global_frame(fw, n2[i, j][1], n2[i, j][2])=#
 
-        fy_interaction[i, j, k, :] .= 
+        fy_interaction[i, j, k, :] .=
             0.5 .* (f_face[i, j-1, 3, k, :, 2] .+ f_face[i, j, 1, k, :, 2]) .-
             40dt .* (u_face[i, j, 1, k, :] - u_face[i, j-1, 3, k, :])
     end
@@ -142,7 +142,8 @@ function dudt!(du, u, p, t)
 
         du[i, j, k, l, m] =
             -(
-                rhs1[i, j, k, l, m] + rhs2[i, j, k, l, m] +
+                rhs1[i, j, k, l, m] +
+                rhs2[i, j, k, l, m] +
                 (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
                 (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
                 (fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
@@ -165,7 +166,7 @@ itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
     step!(itg)
 end
 
-contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 1], aspect_ratio=1, legend=true)
+contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 1], aspect_ratio = 1, legend = true)
 
 sol = zeros(ps.nr, ps.nθ, 4)
 for i = 1:ps.nr, j = 1:ps.nθ
@@ -173,4 +174,4 @@ for i = 1:ps.nr, j = 1:ps.nθ
     sol[i, j, 4] = 1 / sol[i, j, 4]
 end
 
-contourf(ps.x, ps.y, sol[:, :, 2], aspect_ratio=1, legend=true)
+contourf(ps.x, ps.y, sol[:, :, 2], aspect_ratio = 1, legend = true)

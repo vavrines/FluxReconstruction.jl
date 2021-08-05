@@ -3,7 +3,7 @@ using Test, FluxReconstruction
 cd(@__DIR__)
 include("test_triangle.jl")
 
-let u = rand(3), u0 = rand(3) 
+let u = rand(3), u0 = rand(3)
     FR.L1_error(u, u0, 0.1)
     FR.L2_error(u, u0, 0.1)
     FR.L∞_error(u, u0, 0.1)
@@ -22,9 +22,9 @@ rs_jacobi(ps2.xpl, rand(3, 3, 4, 2))
 ps1 = TriFRPSpace("../assets/linesource.msh", 2)
 ps = FRPSpace1D(0.0, 1.0, 20, deg)
 
-positive_limiter(ones(6, 3), 5/3, 1/6, ps.ll, ps.lr)
+positive_limiter(ones(6, 3), 5 / 3, 1 / 6, ps.ll, ps.lr)
 
-let u = rand(deg+1)
+let u = rand(deg + 1)
     ℓ = FR.basis_norm(deg)
 
     modal_filter!(u, 1e-6; filter = :l2)
@@ -37,7 +37,7 @@ let u = rand(deg+1)
     FR.filter_exp(2, 10, Array(ps.V))
 end
 
-f = randn(5, deg+1)
+f = randn(5, deg + 1)
 fδ = randn(5, 2)
 FR.interp_face!(fδ, f, ps.ll, ps.lr)
 

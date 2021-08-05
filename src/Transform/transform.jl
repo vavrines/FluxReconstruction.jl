@@ -45,13 +45,13 @@ function vandermonde_matrix(::Type{Tri}, N, r, s)
 end
 
 function vandermonde_matrix(::Type{Quad}, N, r, s)
-    Np = (N+1)^2
+    Np = (N + 1)^2
     V = zeros(eltype(r), length(r), Np)
-    
+
     sk = 1
     for i = 0:N
         for j = 0:N
-            V[:, sk]  = jacobiP(r, 0, 0, i) .* jacobiP(s, 0, 0, j)
+            V[:, sk] = jacobiP(r, 0, 0, i) .* jacobiP(s, 0, 0, j)
             sk += 1
         end
     end
