@@ -6,6 +6,6 @@ struct Line <: AbstractElementShape end
 struct Quad <: AbstractElementShape end
 struct Tri <: AbstractElementShape end
 struct Hex <: AbstractElementShape end
-struct Wedge <: AbstractElementShape end
+struct Wed <: AbstractElementShape end
 struct Pyr <: AbstractElementShape end
 struct Tet <: AbstractElementShape end
