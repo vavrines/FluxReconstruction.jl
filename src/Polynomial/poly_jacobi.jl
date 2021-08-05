@@ -1,3 +1,9 @@
+"""
+    JacobiP(x, alpha, beta, N)
+
+Evaluate Jacobi polynomial P_n^(α,β)(x)
+Note that the order of arguments and return values are different from Jacobi.jl
+"""
 function JacobiP(x::T, alpha, beta, N) where {T<:Real}
     xp = x
     PL = zeros(N + 1)

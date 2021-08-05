@@ -15,6 +15,14 @@ using KitBase.OffsetArrays
 using KitBase.SpecialFunctions
 
 export FR
+export AbstractElementShape,
+       Line,
+       Quad,
+       Tri,
+       Hex,
+       Wed,
+       Pyr,
+       Tet
 export shock_detector,
        positive_limiter
 export legendre_point,

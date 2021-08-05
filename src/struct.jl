@@ -357,15 +357,15 @@ function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
     J = rs_jacobi(ps.cellid, ps.points)
     np = (deg + 1) * (deg + 2) ÷ 2
     xpl, wp = tri_quadrature(deg)
-    V = vandermonde_matrix(deg, xpl[:, 1], xpl[:, 2])
-    Vr, Vs = ∂vandermonde_matrix(deg, xpl[:, 1], xpl[:, 2])
+    V = vandermonde_matrix(Tri, deg, xpl[:, 1], xpl[:, 2])
+    Vr, Vs = ∂vandermonde_matrix(Tri, deg, xpl[:, 1], xpl[:, 2])
     ∂l = ∂lagrange(V, Vr, Vs)
     ϕ = correction_field(deg, V)
 
     xfl, wf = triface_quadrature(deg)
     ψf = zeros(3, deg + 1, np)
     for i = 1:3
-        ψf[i, :, :] .= vandermonde_matrix(deg, xfl[i, :, 1], xfl[i, :, 2])
+        ψf[i, :, :] .= vandermonde_matrix(Tri, deg, xfl[i, :, 1], xfl[i, :, 2])
     end
 
     lf = zeros(3, deg + 1, np)

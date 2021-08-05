@@ -1,6 +1,7 @@
 using Test, FluxReconstruction
 
 cd(@__DIR__)
+include("test_triangle.jl")
 
 let u = rand(3), u0 = rand(3) 
     FR.L1_error(u, u0, 0.1)
@@ -17,10 +18,6 @@ ps2 = FRPSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20, deg)
 
 rs_jacobi(ps2.xpl, [0 0; √3 -1; √3+1 √3-1; 1 √3])
 rs_jacobi(ps2.xpl, rand(3, 3, 4, 2))
-
-
-
-
 
 ps1 = TriFRPSpace("../assets/linesource.msh", 2)
 ps = FRPSpace1D(0.0, 1.0, 20, deg)
@@ -39,11 +36,6 @@ let u = rand(deg+1)
     # 2D exponential filter
     FR.filter_exp(2, 10, Array(ps.V))
 end
-
-pl, wl = tri_quadrature(3)
-V = vandermonde_matrix(3, pl[:, 1], pl[:, 2])
-Vr, Vs = ∂vandermonde_matrix(3, pl[:, 1], pl[:, 2])
-∂l = ∂lagrange(V, Vr, Vs)
 
 f = randn(5, deg+1)
 fδ = randn(5, 2)

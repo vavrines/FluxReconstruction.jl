@@ -2,13 +2,12 @@
     simplex_basis(a, b, i, j)
 
 Evaluate 2D orthonormal polynomial at simplex (a, b) of order (i, j)
+
 Translated from Simplex2DP.m
 
 """
 function simplex_basis(a::T, b::T, i, j) where {T<:Real}
-    # x, n, a, b
-    #h1 = jacobi(a, i, 0, 0)
-    #h2 = jacobi(b, j, 2*i+1, 0)
+    # x, a, b, n
     h1 = JacobiP(a, 0, 0, i)
     h2 = JacobiP(b, 2 * i + 1, 0, j)
 
@@ -88,9 +87,9 @@ function vandermonde_matrix(N, r)
     return V1D
 end
 
-function vandermonde_matrix(N, r, s)
+function vandermonde_matrix(::Type{Tri}, N, r, s)
     Np = (N + 1) * (N + 2) ÷ 2
-    V2D = zeros(length(r), Np)
+    V2D = zeros(eltype(r), length(r), Np)
     a, b = rs_ab(r, s)
 
     sk = 1
@@ -104,6 +103,21 @@ function vandermonde_matrix(N, r, s)
     return V2D
 end
 
+function basis(::Type{Quad}, N, r, s)
+    Np = (N+1)^2
+    sk = 1
+    V = zeros(eltype(r), length(r), Np)
+
+    for i=0:N
+        for j=0:N
+            V[:, sk]  = JacobiP(r, 0, 0, i) .* JacobiP(s, 0, 0, j)
+            sk += 1
+        end
+    end
+
+    return V
+end
+
 
 """
     ∂vandermonde_matrix(N, r)
@@ -112,7 +126,7 @@ end
 gradient of the modal basis (i,j) at (r,s) at order N
 
 """
-function ∂vandermonde_matrix(N, r)
+function ∂vandermonde_matrix(N::T, r) where {T<:Integer}
     Vr = zeros(length(r), N + 1)
 
     for i = 0:N
@@ -122,9 +136,11 @@ function ∂vandermonde_matrix(N, r)
     return Vr
 end
 
-function ∂vandermonde_matrix(N, r, s)
-    V2Dr = zeros(length(r), (N + 1) * (N + 2) ÷ 2)
-    V2Ds = zeros(length(r), (N + 1) * (N + 2) ÷ 2)
+∂vandermonde_matrix(::Type{Line}, N, r) = ∂vandermonde_matrix(N, r)
+
+function ∂vandermonde_matrix(::Type{Tri}, N::T, r, s) where {T<:Integer}
+    V2Dr = zeros(eltype(r), length(r), (N + 1) * (N + 2) ÷ 2)
+    V2Ds = zeros(eltype(r), length(r), (N + 1) * (N + 2) ÷ 2)
 
     # tensor-product coordinates
     a, b = rs_ab(r, s)

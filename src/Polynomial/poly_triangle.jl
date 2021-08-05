@@ -5,7 +5,7 @@ function correction_field(N, V)
     Np = (N + 1) * (N + 2) ÷ 2
     ψf = zeros(3, N + 1, Np)
     for i = 1:3
-        ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
+        ψf[i, :, :] .= vandermonde_matrix(Tri, N, pf[i, :, 1], pf[i, :, 2])
     end
 
     σ = zeros(3, N + 1, Np)
@@ -17,7 +17,7 @@ function correction_field(N, V)
         end
     end
 
-    V = vandermonde_matrix(N, pl[:, 1], pl[:, 2])
+    V = vandermonde_matrix(Tri, N, pl[:, 1], pl[:, 2])
 
     ϕ = zeros(3, N + 1, Np)
     for f = 1:3, j = 1:N+1, i = 1:Np
