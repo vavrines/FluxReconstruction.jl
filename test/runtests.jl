@@ -14,7 +14,7 @@ shock_detector(log10(0.1), 3)
 shock_detector(log10(1e5), 3)
 
 deg = 5
-ps2 = FRPSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20, deg)
+ps2 = FRPSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20, deg, 1, 1)
 
 rs_jacobi(ps2.xpl, [0 0; √3 -1; √3+1 √3-1; 1 √3])
 rs_jacobi(ps2.xpl, rand(3, 3, 4, 2))

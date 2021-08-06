@@ -89,6 +89,10 @@ function ∂lagrange(V, Vr, Vs)
 end
 
 
+"""
+One-shot calculation of derivatives of Lagrange polynomials and the values at cell edge
+
+"""
 function standard_lagrange(x)
     ll = lagrange_point(x, -1.0)
     lr = lagrange_point(x, 1.0)

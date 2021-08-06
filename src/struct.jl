@@ -128,102 +128,15 @@ struct FRPSpace2D{
     dlr::C
     dhl::C
     dhr::C
-end
-
-function FRPSpace2D(
-    x0::Real,
-    x1::Real,
-    nx::Integer,
-    y0::Real,
-    y1::Real,
-    ny::Integer,
-    deg::Integer,
-    ngx = 0::Integer,
-    ngy = 0::Integer,
-)
-    ps = PSpace2D(x0, x1, nx, y0, y1, ny, ngx, ngy)
-
-    r = legendre_point(deg) .|> eltype(ps.x)
-    J = rs_jacobi(r, ps.vertices)
-
-    iJ = deepcopy(J)
-    for i in axes(iJ, 1), j in axes(iJ, 2)
-        for k = 1:deg+1, l = 1:deg+1
-            iJ[i, j][k, l] .= inv(J[i, j][k, l])
-        end
-    end
-
-    ri = zeros(eltype(ps.x), 4, deg + 1)
-    ri[1, :] .= r
-    ri[2, :] .= 1.0
-    ri[3, :] .= r[end:-1:1]
-    ri[4, :] .= 0.0
-    si = zeros(eltype(ps.x), 4, deg + 1)
-    si[1, :] .= 0.0
-    si[2, :] .= r
-    si[3, :] .= 1.0
-    si[4, :] .= r[end:-1:1]
-    Ji = rs_jacobi(ri, si, ps.vertices)
-
-    xi = similar(ps.x, 1-ngx:nx+ngx+1, 1-ngy:ny+ngy)
-    for j in axes(xi, 2)
-        for i = 1-ngx:nx+ngx
-            xi[i, j] = ps.x[i, j] - 0.5 * ps.dx[i, j]
-        end
-        xi[nx+ngx+1, j] = ps.x[nx+ngx, j] + 0.5 * ps.dx[nx+ngx, j]
-    end
-    yi = similar(ps.x, 1-ngx:nx+ngx, 1-ngy:ny+ngy+1)
-    for i in axes(yi, 1)
-        for j = 1-ngy:ny+ngy
-            yi[i, j] = ps.y[i, j] - 0.5 * ps.dy[i, j]
-        end
-        yi[i, ny+ngy+1] = ps.y[i, ny+ngy] + 0.5 * ps.dy[i, ny+ngy]
-    end
-
-    xp, yp = global_sp(xi, yi, r)
-    xpg = cat(xp, yp, dims = 5)
-    xpg = OffsetArray(xpg, 1-ngx:nx+ngx, 1-ngy:ny+ngy, 1:deg+1, 1:deg+1, 1:2)
-
-    w = gausslegendre(deg + 1)[2] .|> eltype(ps.x)
-    wp = [w[i] * w[j] for i = 1:deg+1, j = 1:deg+1]
-
-    ll = lagrange_point(r, -1.0)
-    lr = lagrange_point(r, 1.0)
-    lpdm = ∂lagrange(r)
-
-    V = vandermonde_matrix(deg, r)
-    dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
-    ∂lf = zeros(eltype(ps.x), 2, deg + 1)
-    for i = 1:2
-        ∂lf[i, :] .= V' \ dVf[i, :]
-    end
-    dll = ∂lf[1, :]
-    dlr = ∂lf[2, :]
-
-    dhl, dhr = ∂radau(deg, r)
-
-    return FRPSpace2D{typeof(ps),typeof(deg),typeof(J),typeof(r),typeof(xpg),typeof(wp)}(
-        ps,
-        deg,
-        J,
-        iJ,
-        Ji,
-        (deg + 1)^2,
-        r,
-        xpg,
-        wp,
-        lpdm,
-        ll,
-        lr,
-        dll,
-        dlr,
-        dhl,
-        dhr,
-    )
+    V::E
+    iV::E
 end
 
 function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
+    # solution points in 1D standard element
     r = legendre_point(deg) .|> eltype(base.x)
+
+    # Jacobian and its inverse
     J = rs_jacobi(r, base.vertices)
 
     iJ = deepcopy(J)
@@ -233,6 +146,7 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
         end
     end
 
+    # interface flux points
     ri = zeros(eltype(base.x), 4, deg + 1)
     ri[1, :] .= r
     ri[2, :] .= 1.0
@@ -245,8 +159,10 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
     si[3, :] .= 1.0
     si[4, :] .= r[end:-1:1]
 
+    # Jacobian of flux points
     Ji = rs_jacobi(ri, si, base.vertices)
 
+    # solution points in global coordinates
     xpg = OffsetArray{eltype(base.x)}(
         undef,
         axes(base.x, 1),
@@ -263,12 +179,12 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
             (1.0 - r[k]) * (r[l] + 1.0) / 4 * base.vertices[i, j, 4, :]
     end
 
+    # quadrature weights
     w = gausslegendre(deg + 1)[2] .|> eltype(base.x)
     wp = [w[i] * w[j] for i = 1:deg+1, j = 1:deg+1]
 
-    ll = lagrange_point(r, -1.0)
-    lr = lagrange_point(r, 1.0)
-    lpdm = ∂lagrange(r)
+    # Lagrange polynomials
+    ll, lr, lpdm = standard_lagrange(r)
 
     V = vandermonde_matrix(deg, r)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
@@ -280,6 +196,18 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
     dlr = ∂lf[2, :]
 
     dhl, dhr = ∂radau(deg, r)
+
+    # 2D Vandermonde matrix
+    r2d = zeros(eltype(r), length(r), length(r))
+    for j in axes(r2d, 2)
+        r2d[:, j] .= r
+    end
+    s2d = deepcopy(r2d)
+    for i in axes(s2d, 1)
+        s2d[i, :] .= r
+    end
+    V = vandermonde_matrix(Quad, deg, r2d[:], s2d[:])
+    iV = inv(V)
 
     return FRPSpace2D{typeof(base),typeof(deg),typeof(J),typeof(r),typeof(xpg),typeof(wp)}(
         base,
@@ -298,7 +226,24 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
         dlr,
         dhl,
         dhr,
+        V,
+        iV,
     )
+end
+
+function FRPSpace2D(
+    x0::Real,
+    x1::Real,
+    nx::Integer,
+    y0::Real,
+    y1::Real,
+    ny::Integer,
+    deg::Integer,
+    ngx = 0::Integer,
+    ngy = 0::Integer,
+)
+    ps = PSpace2D(x0, x1, nx, y0, y1, ny, ngx, ngy)
+    return FRPSpace2D(ps, deg)
 end
 
 
