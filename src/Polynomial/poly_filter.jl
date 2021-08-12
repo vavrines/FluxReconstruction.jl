@@ -29,7 +29,7 @@ function filter_l2opt!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
     @assert q0 >= 0
 
     λ = args[1]
-    η = λ * 2^2
+    η = λ * 2.0
     for i = q0+1:q1
         u[i] /= (1.0 + λ * (i - q0 + 1)^2 * (i - q0)^2 - η)
     end
