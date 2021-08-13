@@ -168,7 +168,7 @@ function filter_houli!(u::AbstractVector{T}, args...) where {T<:AbstractFloat}
 
     σ = filter_exp1d(N, s, Nc)
     for i in eachindex(σ)
-        if i / length(σ) <= 2 / 3
+        if i / length(σ) < 2 / 3
             σ[i] = 1.0
         end
     end

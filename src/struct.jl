@@ -49,6 +49,7 @@ struct FRPSpace1D{
     dhl::B
     dhr::B
     V::C
+    iV::C
 end
 
 function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integer)
@@ -65,6 +66,7 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
     lpdm = ∂lagrange(r)
 
     V = vandermonde_matrix(deg, r) |> Array
+    iV = inv(V)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
     ∂lf = zeros(2, deg + 1)
     for i = 1:2
@@ -91,6 +93,7 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
         dhl,
         dhr,
         V,
+        iV,
     )
 end
 
