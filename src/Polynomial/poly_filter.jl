@@ -105,7 +105,7 @@ function filter_l1!(u::AbstractMatrix{T}, args...) where {T<:AbstractFloat}
     λ1, λ2 = args[1:2]
     ℓ = args[3]
     for j in axes(u, 2), i in axes(u, 1)
-        sc = 1.0 - (λ1 * i * (i - 1) + λ2 * j * (j - 1)) * ℓ[i] / (abs(u[i,j]) + 1e-8)
+        sc = 1.0 - (λ1 * i * (i - 1) + λ2 * j * (j - 1)) * ℓ[i, j] / (abs(u[i,j]) + 1e-8)
         if sc < 0.0
             sc = 0.0
         end
