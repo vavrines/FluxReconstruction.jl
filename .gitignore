@@ -2,3 +2,4 @@
 Manifest.toml
 *.jld2
 dev/sol.vtu
+deps/build.log

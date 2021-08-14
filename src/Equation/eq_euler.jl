@@ -38,43 +38,32 @@ function frode_euler!(du::AbstractTensor3, u, p, t)
         end
     end
 
-    @inbounds @threads for i = 1:ncell
-        for j = 1:3
-            # right face of element i
-            u_face[i, 1, j] = dot(u[i, :, j], lr)
-            f_face[i, 1, j] = dot(f[i, :, j], lr)
+    @inbounds @threads for j = 1:3
+        # left face of element i
+        u_face[:, 1, j] .= u[:, :, j] * ll
+        f_face[:, 1, j] .= f[:, :, j] * ll
 
-            # left face of element i
-            u_face[i, 2, j] = dot(u[i, :, j], ll)
-            f_face[i, 2, j] = dot(f[i, :, j], ll)
-        end
+        # right face of element i
+        u_face[:, 2, j] .= u[:, :, j] * lr
+        f_face[:, 2, j] .= f[:, :, j] * lr
     end
 
     @inbounds @threads for i = 2:ncell
         fw = @view f_interaction[i, :]
-        flux_hll!(fw, u_face[i-1, 1, :], u_face[i, 2, :], γ, 1.0)
-    end
-    #fw = @view f_interaction[1, :]
-    #flux_hll!(fw, u_face[ncell, 1, :], u_face[1, 2, :], γ, 1.0)
-    #fw = @view f_interaction[ncell+1, :]
-    #flux_hll!(fw, u_face[ncell, 1, :], u_face[1, 2, :], γ, 1.0)
-
-    @inbounds @threads for i = 1:ncell
-        for ppp1 = 1:nsp
-            for k = 1:3
-                rhs1[i, ppp1, k] = dot(f[i, :, k], lpdm[ppp1, :])
-            end
-        end
+        flux_hll!(fw, u_face[i-1, 2, :], u_face[i, 1, :], γ, 1.0)
     end
 
-    idx = 2:ncell-1 # ending points are Dirichlet
-    @inbounds @threads for i in idx
+    @inbounds @threads for k = 1:3
+        rhs1[:, :, k] .= f[:, :, k] * lpdm'
+    end
+
+    @inbounds @threads for i = 2:ncell-1
         for ppp1 = 1:nsp, k = 1:3
             du[i, ppp1, k] =
                 -(
                     rhs1[i, ppp1, k] +
-                    (f_interaction[i, k] / J[i] - f_face[i, 2, k]) * dgl[ppp1] +
-                    (f_interaction[i+1, k] / J[i] - f_face[i, 1, k]) * dgr[ppp1]
+                    (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
+                    (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
                 )
         end
     end
@@ -89,4 +78,27 @@ end
 function dirichlet_euler!(du::AbstractTensor3, u, p)
     du[1, :, :] .= 0.0
     du[end, :, :] .= 0.0
+end
+
+function period_euler!(du::AbstractTensor3, u, p)
+    f, u_face, f_face, f_interaction, rhs1, J, ll, lr, lpdm, dgl, dgr, γ, bc = p
+
+    ncell = size(u, 1)
+    nsp = size(u, 2)
+
+    fw = @view f_interaction[1, :]
+    flux_hll!(fw, u_face[ncell, 2, :], u_face[1, 1, :], γ, 1.0)
+    fw = @view f_interaction[ncell+1, :]
+    flux_hll!(fw, u_face[ncell, 2, :], u_face[1, 1, :], γ, 1.0)
+
+    @inbounds for i in [1, ncell]
+        for ppp1 = 1:nsp, k = 1:3
+            du[i, ppp1, k] =
+                -(
+                    rhs1[i, ppp1, k] +
+                    (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
+                    (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
+                )
+        end
+    end
 end
