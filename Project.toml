@@ -15,7 +15,7 @@ PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 [compat]
 CUDA = "^3"
 GSL = "^1"
-KitBase = "0.6"
+KitBase = "0.7"
 NonlinearSolve = "0.3"
 OrdinaryDiffEq = "^5"
 PyCall = "^1"

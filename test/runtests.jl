@@ -1,4 +1,4 @@
-using Test, FluxReconstruction
+using Test, FluxReconstruction, KitBase
 
 cd(@__DIR__)
 include("test_triangle.jl")
