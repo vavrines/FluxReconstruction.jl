@@ -19,11 +19,9 @@ begin
         0.1, # cfl
         1.0, # time
     )
-
-    ps0 = KitBase.CSpace2D(1.0, 6.0, 60, 0.0, π, 50, 0, 1)
+    ps0 = KitBase.CSpace2D(1.0, 6.0, 30, 0.0, π, 40, 0, 1)
     deg = set.interpOrder - 1
     ps = FRPSpace2D(ps0, deg)
-
     vs = nothing
     gas = Gas(
         1e-6,
@@ -101,10 +99,19 @@ function dudt!(du, u, p, t)
         fx_interaction[i, j, k, :] .=
             0.5 .* (f_face[i-1, j, 2, k, :, 1] .+ f_face[i, j, 4, k, :, 1]) .-
             dt .* (u_face[i, j, 4, k, :] - u_face[i-1, j, 2, k, :])
+
+        #=fw = @view fx_interaction[i, j, k, :]
+        uL = local_frame(u_face[i-1, j, 2, k, :], n1[i, j][1], n1[i, j][2])
+        uR = local_frame(u_face[i, j, 4, k, :], n1[i, j][1], n1[i, j][2])
+        flux_hll!(fw, uL, uR, γ, 1.0)
+        fw .= global_frame(fw, n1[i, j][1], n1[i, j][2])
+        for l = 1:4
+            fw[l] = (inv(J[i, j][k, l]) * [n1[i, j][1], n1[i, j][2]])[1] * fw[l]
+        end=#
     end
 
     for j = 1:ny, k = 1:nsp
-        ul = local_frame(u_face[i, j, 4, k, :], n1[1, j][1], n1[1, j][2])
+        ul = local_frame(u_face[1, j, 4, k, :], n1[1, j][1], n1[1, j][2])
         prim = conserve_prim(ul, γ)
         pn = zeros(4)
 
@@ -119,21 +126,28 @@ function dudt!(du, u, p, t)
         fg, gg = euler_flux(ub, γ)
         fb = zeros(4)
         for m = 1:4
-            fb[m] = (inv(ps.Ji[i, j][4, k])*[fg[m], gg[m]])[1]
+            fb[m] = (inv(ps.Ji[1, j][4, k])*[fg[m], gg[m]])[1]
         end
 
 
         fx_interaction[1, j, k, :] .=
-            0.5 .* (fb .+ f_face[i, j, 4, k, :, 1]) .- dt .* (u_face[i, j, 4, k, :] - ub)
-
+            0.5 .* (fb .+ f_face[1, j, 4, k, :, 1]) .- dt .* (u_face[1, j, 4, k, :] - ub)
     end
-
 
     fy_interaction = zeros(nx, ny + 1, nsp, 4)
     for i = 1:nx, j = 1:ny+1, k = 1:nsp
         fy_interaction[i, j, k, :] .=
             0.5 .* (f_face[i, j-1, 3, k, :, 2] .+ f_face[i, j, 1, k, :, 2]) .-
             dt .* (u_face[i, j, 1, k, :] - u_face[i, j-1, 3, k, :])
+
+        #=fw = @view fy_interaction[i, j, k, :]
+        uL = local_frame(u_face[i, j-1, 3, k, :], n2[i, j][1], n2[i, j][2])
+        uR = local_frame(u_face[i, j, 1, k, :], n2[i, j][1], n2[i, j][2])
+        flux_hll!(fw, uL, uR, γ, 1.0)
+        fw .= global_frame(fw, n2[i, j][1], n2[i, j][2])
+        for l = 1:4
+            fw[l] = (inv(J[i, j][k, l]) * [n2[i, j][1], n2[i, j][2]])[2] * fw[l]
+        end=#
     end
 
     rhs1 = zeros(nx, ny, nsp, nsp, 4)
@@ -182,7 +196,7 @@ itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
     step!(itg)
 end
 
-contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 2], aspect_ratio = 1, legend = true)
+contourf(ps.x, ps.y, itg.u[:, :, 2, 2, 1], aspect_ratio = 1, legend = true)
 
 sol = zeros(ps.nr, ps.nθ, 4)
 for i = 1:ps.nr, j = 1:ps.nθ

@@ -1,21 +1,64 @@
-t1 = ib_rh(1.1, ks.gas.γ, rand(3))[2]
-prim = [t1[1], t1[2], 0.0, t1[3]]
+nx = 30
+ny = 40
+nsp = 3
+u = u0
 
-s = prim[1]^(1 - ks.gas.γ) / (2 * prim[end])
 
-i = 8;
-j = 15;
+f = OffsetArray{Float64}(undef, 1:nx, 0:ny+1, nsp, nsp, 4, 2)
+for i in axes(f, 1), j in axes(f, 2), k = 1:nsp, l = 1:nsp
+    fg, gg = euler_flux(u[i, j, k, l, :], ks.gas.γ)
+    for m = 1:4
+        f[i, j, k, l, m, :] .= inv(ps.J[i, j][k, l]) * [fg[m], gg[m]]
+    end
+end
 
-θ = atan((ps.xpg[i, j, 2, 2, 2] - 0.5) / (ps.xpg[i, j, 2, 2, 1] - 0.25))
+u_face = OffsetArray{Float64}(undef, 1:nx, 0:ny+1, 4, nsp, 4)
+f_face = OffsetArray{Float64}(undef, 1:nx, 0:ny+1, 4, nsp, 4, 2)
+for i in axes(u_face, 1), j in axes(u_face, 2), l = 1:nsp, m = 1:4
+    u_face[i, j, 1, l, m] = dot(u[i, j, l, :, m], ps.ll)
+    u_face[i, j, 2, l, m] = dot(u[i, j, :, l, m], ps.lr)
+    u_face[i, j, 3, l, m] = dot(u[i, j, l, :, m], ps.lr)
+    u_face[i, j, 4, l, m] = dot(u[i, j, :, l, m], ps.ll)
 
-κ = 0.3
-μ = 0.204
-rc = 0.05
+    for n = 1:2
+        f_face[i, j, 1, l, m, n] = dot(f[i, j, l, :, m, n], ps.ll)
+        f_face[i, j, 2, l, m, n] = dot(f[i, j, :, l, m, n], ps.lr)
+        f_face[i, j, 3, l, m, n] = dot(f[i, j, l, :, m, n], ps.lr)
+        f_face[i, j, 4, l, m, n] = dot(f[i, j, :, l, m, n], ps.ll)
+    end
+end
 
-r = sqrt((ps.xpg[i, j, 2, 2, 1] - 0.25)^2 + (ps.xpg[i, j, 2, 2, 2] - 0.5)^2)
-η = r / rc
+fx_interaction = zeros(nx + 1, ny, nsp, 4)
+for i = 2:nx, j = 1:ny, k = 1:nsp
+    fx_interaction[i, j, k, :] .=
+        0.5 .* (f_face[i-1, j, 2, k, :, 1] .+ f_face[i, j, 4, k, :, 1]) .-
+        dt .* (u_face[i, j, 4, k, :] - u_face[i-1, j, 2, k, :])
+end
 
-δu = κ * η * exp(μ * (1 - η^2)) * sin(θ)
-δv = κ * η * exp(μ * (1 - η^2)) * cos(θ)
-δT = -(ks.gas.γ - 1) * κ^2 / (2 * μ * γ) * exp(2 * μ * (1 - η^2))
-δλ = 1 / δT
+j = 10
+k = 1
+
+u_face[1, j, 4, k, :]
+
+ul = local_frame(u_face[1, j, 4, k, :], n1[1, j][1], n1[1, j][2])
+prim = conserve_prim(ul, ks.gas.γ)
+pn = zeros(4)
+
+pn[2] = -prim[2]
+pn[3] = prim[3]
+pn[4] = 2.0 - prim[4]
+tmp = (prim[4] - 1.0)
+pn[1] = (1 - tmp) / (1 + tmp) * prim[1]
+
+ub = global_frame(prim_conserve(pn, ks.gas.γ), n1[1, j][1], n1[1, j][2])
+
+fg, gg = euler_flux(ub, ks.gas.γ)
+fb = zeros(4)
+for m = 1:4
+    fb[m] = (inv(ps.Ji[1, j][4, k])*[fg[m], gg[m]])[1]
+end
+
+
+f_face[1, j, 4, k, :, 1]
+
+fb
