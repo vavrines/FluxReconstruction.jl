@@ -40,7 +40,7 @@ end
 
 u0 = OffsetArray{Float64}(undef, 1:ps.nr, 0:ps.nθ+1, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
-    prim = [1.0, ks.gas.Ma, 0.0, 1.0]
+    prim = [1.0, 1.0, 0.0, 1.0]
     u0[i, j, k, l, :] .= prim_conserve(prim, ks.gas.γ)
 end
 
@@ -91,9 +91,11 @@ function dudt!(du, u, p, t)
 
     fx_interaction = zeros(nx + 1, ny, nsp, 4)
     for i = 2:nx, j = 1:ny, k = 1:nsp
-        fx_interaction[i, j, k, :] .=
-            0.5 .* (f_face[i-1, j, 2, k, :, 1] .+ f_face[i, j, 4, k, :, 1]) .-
-            dt .* (u_face[i, j, 4, k, :] - u_face[i-1, j, 2, k, :])
+        fw = @view fx_interaction[i, j, k, :]
+        uL = local_frame(u_face[i-1, j, 2, k, :], n1[i, j][1], n1[i, j][2])
+        uR = local_frame(u_face[i, j, 4, k, :], n1[i, j][1], n1[i, j][2])
+        flux_hll!(fw, uL, uR, γ, 1.0)
+        fw .= global_frame(fw, n1[i, j][1], n1[i, j][2])
     end
 
     for j = 1:ny, k = 1:nsp
@@ -102,28 +104,26 @@ function dudt!(du, u, p, t)
         pn = zeros(4)
 
         pn[2] = -prim[2]
-        pn[3] = -prim[3]
+        pn[3] = prim[3]
         pn[4] = 2.0 - prim[4]
         tmp = (prim[4] - 1.0)
         pn[1] = (1 - tmp) / (1 + tmp) * prim[1]
 
-        ub = global_frame(prim_conserve(pn, γ), n1[1, j][1], n1[1, j][2])
+        ub = prim_conserve(pn, γ)
+        #ub = global_frame(prim_conserve(pn, γ), n1[1, j][1], n1[1, j][2])
 
-        fg, gg = euler_flux(ub, γ)
-        fb = zeros(4)
-        for m = 1:4
-            fb[m] = (inv(ps.Ji[1, j][4, k])*[fg[m], gg[m]])[1]
-        end
-
-        fx_interaction[1, j, k, :] .=
-            0.5 .* (fb .+ f_face[1, j, 4, k, :, 1]) .- dt .* (u_face[1, j, 4, k, :] - ub)
+        fw = @view fx_interaction[1, j, k, :]
+        flux_hll!(fw, ub, Array(ul), γ, 1.0)
+        fw .= global_frame(fw, n1[1, j][1], n1[1, j][2])
     end
 
     fy_interaction = zeros(nx, ny + 1, nsp, 4)
     for i = 1:nx, j = 1:ny+1, k = 1:nsp
-        fy_interaction[i, j, k, :] .=
-            0.5 .* (f_face[i, j-1, 3, k, :, 2] .+ f_face[i, j, 1, k, :, 2]) .-
-            dt .* (u_face[i, j, 1, k, :] - u_face[i, j-1, 3, k, :])
+        fw = @view fy_interaction[i, j, k, :]
+        uL = local_frame(u_face[i, j-1, 3, k, :], n2[i, j][1], n2[i, j][2])
+        uR = local_frame(u_face[i, j, 1, k, :], n2[i, j][1], n2[i, j][2])
+        flux_hll!(fw, uL, uR, γ, 1.0)
+        fw .= global_frame(fw, n2[i, j][1], n2[i, j][2])
     end
 
     rhs1 = zeros(nx, ny, nsp, nsp, 4)
@@ -136,14 +136,17 @@ function dudt!(du, u, p, t)
     end
 
     for i = 1:nx-1, j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
+        fxL = (inv(ps.Ji[i, j][4, l]) * n1[i, j])[1] * fx_interaction[i, j, l, m]
+        fxR = (inv(ps.Ji[i, j][2, l]) * n1[i+1, j])[1] * fx_interaction[i+1, j, l, m]
+        fyL = (inv(ps.Ji[i, j][1, k]) * n2[i, j])[2] * fy_interaction[i, j, l, m]
+        fyR = (inv(ps.Ji[i, j][3, k]) * n2[i, j+1])[2] * fy_interaction[i, j+1, l, m]
         du[i, j, k, l, m] =
             -(
-                rhs1[i, j, k, l, m] +
-                rhs2[i, j, k, l, m] +
-                (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fy_interaction[i, j+1, k, m] - f_face[i, j, 3, k, m, 2]) * dhr[l]
+                rhs1[i, j, k, l, m] + rhs2[i, j, k, l, m] +
+                (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
+                (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
+                (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
+                (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
             )
     end
 
@@ -158,7 +161,7 @@ dt = 0.001
 nt = tspan[2] ÷ dt |> Int
 itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
 
-@showprogress for iter = 1:10#nt
+@showprogress for iter = 1:1#nt
     for i = 1:ps.nr, k = 1:ps.deg+1, l = 1:ps.deg+1
         u1 = itg.u[i, 1, 4-k, 4-l, :]
         ug1 = [u1[1], u1[2], -u1[3], u1[4]]
