@@ -157,11 +157,11 @@ tspan = (0.0, 1.0)
 p = (ps.J, ps.ll, ps.lr, ps.dhl, ps.dhr, ps.dl, ks.gas.γ)
 prob = ODEProblem(dudt!, u0, tspan, p)
 
-dt = 0.001
+dt = 0.0005
 nt = tspan[2] ÷ dt |> Int
 itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
 
-@showprogress for iter = 1:1#nt
+@showprogress for iter = 1:5#nt
     for i = 1:ps.nr, k = 1:ps.deg+1, l = 1:ps.deg+1
         u1 = itg.u[i, 1, 4-k, 4-l, :]
         ug1 = [u1[1], u1[2], -u1[3], u1[4]]
@@ -184,7 +184,7 @@ end
 contourf(
     ps.x[1:ps.nr, 1:ps.nθ],
     ps.y[1:ps.nr, 1:ps.nθ],
-    sol[:, :, 4],
+    sol[:, :, 1],
     aspect_ratio = 1,
     legend = true,
 )
