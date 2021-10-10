@@ -22,6 +22,7 @@ rs_jacobi(ps2.xpl, rand(3, 3, 4, 2))
 ps1 = TriFRPSpace("../assets/linesource.msh", 2)
 ps = FRPSpace1D(0.0, 1.0, 20, deg)
 
+positive_limiter(ones(6), 1 / 6, ps.ll, ps.lr)
 positive_limiter(ones(6, 3), 5 / 3, 1 / 6, ps.ll, ps.lr)
 
 let u = rand(deg + 1)

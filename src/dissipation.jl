@@ -37,6 +37,31 @@ _R. Vandenhoeck and A. Lani. Implicit high-order flux reconstruction solver for 
 - @arg t0=1.0: minimum limiting slope
 """
 function positive_limiter(
+    u::AbstractVector{T},
+    weights,
+    ll,
+    lr,
+    t0 = 1.0,
+) where {T<:AbstractFloat}
+
+    um = sum(u .* weights) / sum(weights)
+    ub = [dot(u, ll), dot(u, lr)]
+
+    ϵ = min(1e-13, um)
+    θ = min(minimum(ub), minimum(u))
+    
+    t = min((um - ϵ) / (um - θ + 1e-8), 1.0)
+    @assert 0 < t <= 1 "incorrect range of limiter parameter t"
+
+    for i in axes(u, 1)
+        u[i] = t1 * (u[i] - um) + um
+    end
+
+    return nothing
+
+end
+
+function positive_limiter(
     u::AbstractMatrix{T},
     γ,
     weights,
@@ -44,6 +69,7 @@ function positive_limiter(
     lr,
     t0 = 1.0,
 ) where {T<:AbstractFloat}
+
     # mean values
     u_mean = [sum(u[:, j] .* weights) for j in axes(u, 2)]
     t_mean = 1.0 / conserve_prim(u_mean, γ)[end]
@@ -97,6 +123,7 @@ function positive_limiter(
     end
 
     return nothing
+
 end
 
 function positive_limiter(
@@ -107,6 +134,7 @@ function positive_limiter(
     lr,
     t0 = 1.0,
 ) where {T<:AbstractFloat}
+
     # mean values
     u_mean = [sum(u[:, :, j] .* weights) for j in axes(u, 2)]
     t_mean = 1.0 / conserve_prim(u_mean, γ)[end]
@@ -179,6 +207,7 @@ function positive_limiter(
     end
 
     return nothing
+
 end
 
 function tj_equation(t, p)
