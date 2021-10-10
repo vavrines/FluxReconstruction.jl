@@ -54,7 +54,7 @@ function positive_limiter(
     @assert 0 < t <= 1 "incorrect range of limiter parameter t"
 
     for i in axes(u, 1)
-        u[i] = t1 * (u[i] - um) + um
+        u[i] = t * (u[i] - um) + um
     end
 
     return nothing
