@@ -167,15 +167,14 @@ function dudt!(du, u, p, t)
         fxR = (inv(ps.J[i, j][k, l])*n1[i+1, j])[1] * fx_interaction[i+1, j, l, m]
         fyL = (inv(ps.J[i, j][k, l])*n2[i, j])[2] * fy_interaction[i, j, l, m]
         fyR = (inv(ps.J[i, j][k, l])*n2[i, j+1])[2] * fy_interaction[i, j+1, l, m]
-        du[i, j, k, l, m] =
-            -(
-                rhs1[i, j, k, l, m] +
-                rhs2[i, j, k, l, m] +
-                (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
-            )
+        du[i, j, k, l, m] = -(
+            rhs1[i, j, k, l, m] +
+            rhs2[i, j, k, l, m] +
+            (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
+            (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
+            (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
+            (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
+        )
 
         #=du[i, j, k, l, m] =
             -(

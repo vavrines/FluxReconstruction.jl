@@ -17,7 +17,7 @@ begin
         0.1, # cfl
         1.0, # time
     )
-    ps = FRPSpace2D(0.0, 2.0, 100, 0.0, 1.0, 50, set.interpOrder-1, 1, 1)
+    ps = FRPSpace2D(0.0, 2.0, 100, 0.0, 1.0, 50, set.interpOrder - 1, 1, 1)
     vs = nothing
     gas = Gas(
         1e-6,
@@ -112,27 +112,26 @@ function dudt!(du, u, p, t)
 
     @inbounds @threads for m = 1:4
         for l = 1:nsp, k = 1:nsp, j = 1:ny, i = 1:nx
-            du[i, j, k, l, m] =
-                -(
-                    rhs1[i, j, k, l, m] +
-                    rhs2[i, j, k, l, m] +
-                    (
-                        fx_interaction[i, j, l, m] * iJ[i, j][k, l][1, 1] -
-                        f_face[i, j, 4, l, m, 1]
-                    ) * dhl[k] +
-                    (
-                        fx_interaction[i+1, j, l, m] * iJ[i, j][k, l][1, 1] -
-                        f_face[i, j, 2, l, m, 1]
-                    ) * dhr[k] +
-                    (
-                        fy_interaction[i, j, k, m] * iJ[i, j][k, l][2, 2] -
-                        f_face[i, j, 1, k, m, 2]
-                    ) * dhl[l] +
-                    (
-                        fy_interaction[i, j+1, k, m] * iJ[i, j][k, l][2, 2] -
-                        f_face[i, j, 3, k, m, 2]
-                    ) * dhr[l]
-                )
+            du[i, j, k, l, m] = -(
+                rhs1[i, j, k, l, m] +
+                rhs2[i, j, k, l, m] +
+                (
+                    fx_interaction[i, j, l, m] * iJ[i, j][k, l][1, 1] -
+                    f_face[i, j, 4, l, m, 1]
+                ) * dhl[k] +
+                (
+                    fx_interaction[i+1, j, l, m] * iJ[i, j][k, l][1, 1] -
+                    f_face[i, j, 2, l, m, 1]
+                ) * dhr[k] +
+                (
+                    fy_interaction[i, j, k, m] * iJ[i, j][k, l][2, 2] -
+                    f_face[i, j, 1, k, m, 2]
+                ) * dhl[l] +
+                (
+                    fy_interaction[i, j+1, k, m] * iJ[i, j][k, l][2, 2] -
+                    f_face[i, j, 3, k, m, 2]
+                ) * dhr[l]
+            )
         end
     end
 

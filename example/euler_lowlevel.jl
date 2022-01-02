@@ -68,12 +68,11 @@ function dudt!(du, u, p, t)
 
     idx = 2:ncell-1 # ending points are Dirichlet
     for i in idx, ppp1 = 1:nsp, k = 1:3
-        du[i, ppp1, k] =
-            -(
-                rhs1[i, ppp1, k] +
-                (f_interaction[i, k] / J[i] - f_face[i, k, 2]) * dgl[ppp1] +
-                (f_interaction[i+1, k] / J[i] - f_face[i, k, 1]) * dgr[ppp1]
-            )
+        du[i, ppp1, k] = -(
+            rhs1[i, ppp1, k] +
+            (f_interaction[i, k] / J[i] - f_face[i, k, 2]) * dgl[ppp1] +
+            (f_interaction[i+1, k] / J[i] - f_face[i, k, 1]) * dgr[ppp1]
+        )
     end
 end
 

@@ -140,15 +140,14 @@ function dudt!(du, u, p, t)
                 (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
             )=#
 
-        du[i, j, k, l, m] =
-            -(
-                rhs1[i, j, k, l, m] +
-                rhs2[i, j, k, l, m] +
-                (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fy_interaction[i, j+1, k, m] - f_face[i, j, 3, k, m, 2]) * dhr[l]
-            )
+        du[i, j, k, l, m] = -(
+            rhs1[i, j, k, l, m] +
+            rhs2[i, j, k, l, m] +
+            (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * dhl[k] +
+            (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * dhr[k] +
+            (fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * dhl[l] +
+            (fy_interaction[i, j+1, k, m] - f_face[i, j, 3, k, m, 2]) * dhr[l]
+        )
     end
 
     return nothing

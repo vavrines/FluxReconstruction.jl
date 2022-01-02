@@ -267,19 +267,18 @@ function dudt!(du, u, p, t)
     end
 
     @inbounds for i = 1:nx, j = 1:ny, k = 1:nr, l = 1:ns, m = 1:4
-        du[m, l, k, j, i] =
-            -(
-                rhs1[m, l, k, j, i] +
-                rhs2[m, l, k, j, i] +
-                (fx_interaction[m, l, j, i] / ps.J[i, j][1] - fx_face[m, 1, l, j, i]) *
-                ps.dhl[k] +
-                (fx_interaction[m, l, j, i+1] / ps.J[i, j][1] - fx_face[m, 2, l, j, i]) *
-                ps.dhr[k] +
-                (fy_interaction[m, k, j, i] / ps.J[i, j][2] - fy_face[m, 1, k, j, i]) *
-                ps.dhl[l] +
-                (fy_interaction[m, k, j+1, i] / ps.J[i, j][2] - fy_face[m, 2, k, j, i]) *
-                ps.dhr[l]
-            )
+        du[m, l, k, j, i] = -(
+            rhs1[m, l, k, j, i] +
+            rhs2[m, l, k, j, i] +
+            (fx_interaction[m, l, j, i] / ps.J[i, j][1] - fx_face[m, 1, l, j, i]) *
+            ps.dhl[k] +
+            (fx_interaction[m, l, j, i+1] / ps.J[i, j][1] - fx_face[m, 2, l, j, i]) *
+            ps.dhr[k] +
+            (fy_interaction[m, k, j, i] / ps.J[i, j][2] - fy_face[m, 1, k, j, i]) *
+            ps.dhl[l] +
+            (fy_interaction[m, k, j+1, i] / ps.J[i, j][2] - fy_face[m, 2, k, j, i]) *
+            ps.dhr[l]
+        )
     end
     du[:, :, :, :, 0] .= 0.0
     du[:, :, :, :, nx+1] .= 0.0

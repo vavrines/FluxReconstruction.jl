@@ -118,15 +118,14 @@ function dudt!(du, u, p, t)
     end
 
     for i = 2:nx-1, j = 2:ny-1, k = 1:nsp, l = 1:nsp
-        du[i, j, k, l] =
-            -(
-                rhs1[i, j, k, l] +
-                rhs2[i, j, k, l] +
-                (fx_interaction[i, j, l] - f_face[i, j, 4, l, 1]) * dhl[k] +
-                (fx_interaction[i+1, j, l] - f_face[i, j, 2, l, 1]) * dhr[k] +
-                (fy_interaction[i, j, k] - f_face[i, j, 1, k, 2]) * dhl[l] +
-                (fy_interaction[i, j+1, k] - f_face[i, j, 3, k, 2]) * dhr[l]
-            )
+        du[i, j, k, l] = -(
+            rhs1[i, j, k, l] +
+            rhs2[i, j, k, l] +
+            (fx_interaction[i, j, l] - f_face[i, j, 4, l, 1]) * dhl[k] +
+            (fx_interaction[i+1, j, l] - f_face[i, j, 2, l, 1]) * dhr[k] +
+            (fy_interaction[i, j, k] - f_face[i, j, 1, k, 2]) * dhl[l] +
+            (fy_interaction[i, j+1, k] - f_face[i, j, 3, k, 2]) * dhr[l]
+        )
     end
 
     return nothing

@@ -136,18 +136,18 @@ function dudt!(du, u, p, t)
     end
 
     for i = 1:nx-1, j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
-        fxL = (inv(ps.Ji[i, j][4, l]) * n1[i, j])[1] * fx_interaction[i, j, l, m]
-        fxR = (inv(ps.Ji[i, j][2, l]) * n1[i+1, j])[1] * fx_interaction[i+1, j, l, m]
-        fyL = (inv(ps.Ji[i, j][1, k]) * n2[i, j])[2] * fy_interaction[i, j, l, m]
-        fyR = (inv(ps.Ji[i, j][3, k]) * n2[i, j+1])[2] * fy_interaction[i, j+1, l, m]
-        du[i, j, k, l, m] =
-            -(
-                rhs1[i, j, k, l, m] + rhs2[i, j, k, l, m] +
-                (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
-            )
+        fxL = (inv(ps.Ji[i, j][4, l])*n1[i, j])[1] * fx_interaction[i, j, l, m]
+        fxR = (inv(ps.Ji[i, j][2, l])*n1[i+1, j])[1] * fx_interaction[i+1, j, l, m]
+        fyL = (inv(ps.Ji[i, j][1, k])*n2[i, j])[2] * fy_interaction[i, j, l, m]
+        fyR = (inv(ps.Ji[i, j][3, k])*n2[i, j+1])[2] * fy_interaction[i, j+1, l, m]
+        du[i, j, k, l, m] = -(
+            rhs1[i, j, k, l, m] +
+            rhs2[i, j, k, l, m] +
+            (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
+            (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
+            (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
+            (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
+        )
     end
 
     return nothing

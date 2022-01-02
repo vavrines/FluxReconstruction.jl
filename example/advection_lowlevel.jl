@@ -115,12 +115,11 @@ function mol!(du, u, p, t) # method of lines
     end
 
     for i = 1:ncell, ppp1 = 1:nsp
-        du[i, ppp1] =
-            -(
-                rhs1[i, ppp1] +
-                (f_interaction[e2f[i, 2]] - f_face[i, 2]) * dgl[ppp1] +
-                (f_interaction[e2f[i, 1]] - f_face[i, 1]) * dgr[ppp1]
-            )
+        du[i, ppp1] = -(
+            rhs1[i, ppp1] +
+            (f_interaction[e2f[i, 2]] - f_face[i, 2]) * dgl[ppp1] +
+            (f_interaction[e2f[i, 1]] - f_face[i, 1]) * dgr[ppp1]
+        )
     end
 end
 

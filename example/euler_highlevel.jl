@@ -36,9 +36,9 @@ itg = init(prob, Midpoint(), saveat = tspan[2], adaptive = false, dt = dt)
 @showprogress for iter = 1:nt
     @inbounds @threads for i = 1:ps.nx
         ũ = ps.iV * itg.u[i, :, 1]
-        su = (ũ[end]^2) / (sum(ũ.^2) + 1e-6)
+        su = (ũ[end]^2) / (sum(ũ .^ 2) + 1e-6)
         isd = shock_detector(log10(su), ps.deg)
-        λ = dt * exp(0.875/1 * (ps.deg)) * 0.15
+        λ = dt * exp(0.875 / 1 * (ps.deg)) * 0.15
         if isd
             for s = 1:3
                 û = ps.iV * itg.u[i, :, s]
@@ -68,13 +68,13 @@ begin
         end
     end
 
-    sol = zeros(ncell*nsp, 3)
+    sol = zeros(ncell * nsp, 3)
     for i in axes(sol, 1)
         sol[i, :] .= conserve_prim(w[i, :], γ)
         sol[i, end] = 1 / sol[i, end]
     end
 
-    plot(x, sol[:, 1], label="ρ", xlabel="x")
-    plot!(x, sol[:, 2], label="u", xlabel="x")
-    plot!(x, sol[:, 3], label="T", xlabel="x")
+    plot(x, sol[:, 1], label = "ρ", xlabel = "x")
+    plot!(x, sol[:, 2], label = "u", xlabel = "x")
+    plot!(x, sol[:, 3], label = "T", xlabel = "x")
 end

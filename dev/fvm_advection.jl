@@ -81,12 +81,11 @@ function dudt!(du, u, p, t)
             fa2 = flux_ad(f[i, :], f2, u[i], u2)
             fa3 = flux_ad(f[i, :], f3, u[i], u3)
 
-            du[i] =
-                -(
-                    dot(fa1, cell_normal[i, 1, :]) * cell_length[i, 1] +
-                    dot(fa2, cell_normal[i, 2, :]) * cell_length[i, 2] +
-                    dot(fa3, cell_normal[i, 3, :]) * cell_length[i, 3]
-                )
+            du[i] = -(
+                dot(fa1, cell_normal[i, 1, :]) * cell_length[i, 1] +
+                dot(fa2, cell_normal[i, 2, :]) * cell_length[i, 2] +
+                dot(fa3, cell_normal[i, 3, :]) * cell_length[i, 3]
+            )
 
             du[i] /= ps.cellArea[i]
         end

@@ -49,7 +49,7 @@ function positive_limiter(
 
     ϵ = min(1e-13, um)
     θ = min(minimum(ub), minimum(u))
-    
+
     t = min((um - ϵ) / (um - θ + 1e-8), 1.0)
     @assert 0 < t <= 1 "incorrect range of limiter parameter t"
 

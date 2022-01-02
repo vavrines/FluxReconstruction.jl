@@ -130,7 +130,7 @@ end
         elseif !(id2 in facePoints[i, :])
             idf = 3
         end
-        
+
         fpg[i, j, :] .= rs_xy(pf[idf, j, :], points[id1, 1:2], points[id2, 1:2], points[id3, 1:2])
     end
 

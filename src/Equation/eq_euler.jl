@@ -59,12 +59,11 @@ function frode_euler!(du::AbstractTensor3, u, p, t)
 
     @inbounds @threads for i = 2:ncell-1
         for ppp1 = 1:nsp, k = 1:3
-            du[i, ppp1, k] =
-                -(
-                    rhs1[i, ppp1, k] +
-                    (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
-                    (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
-                )
+            du[i, ppp1, k] = -(
+                rhs1[i, ppp1, k] +
+                (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
+                (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
+            )
         end
     end
 
@@ -93,12 +92,11 @@ function period_euler!(du::AbstractTensor3, u, p)
 
     @inbounds for i in [1, ncell]
         for ppp1 = 1:nsp, k = 1:3
-            du[i, ppp1, k] =
-                -(
-                    rhs1[i, ppp1, k] +
-                    (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
-                    (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
-                )
+            du[i, ppp1, k] = -(
+                rhs1[i, ppp1, k] +
+                (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
+                (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
+            )
         end
     end
 end

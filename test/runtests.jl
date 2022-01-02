@@ -39,7 +39,7 @@ let u = rand(deg + 1)
     FR.filter_exp(2, 10, Array(ps.V))
 end
 
-let u = rand(deg+1, deg+1)
+let u = rand(deg + 1, deg + 1)
     modal_filter!(u, 1e-6, 1e-6; filter = :l2)
     modal_filter!(u, 1e-6, 1e-6; filter = :l2opt)
 end

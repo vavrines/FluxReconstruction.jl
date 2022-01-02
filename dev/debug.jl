@@ -75,15 +75,14 @@ end
 
 du = zero(u)
 for i = 1:nx-1, j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
-    du[i, j, k, l, m] =
-        -(
-            #rhs1[i, j, k, l, m] +
-            #rhs2[i, j, k, l, m] +
-            (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * ps.dhl[k] +
-            (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * ps.dhr[k] #+
-            #(fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * ps.dhl[l] +
-            #(fy_interaction[i, j+1, k, m] - f_face[i, j, 3, k, m, 2]) * ps.dhr[l]
-        )
+    du[i, j, k, l, m] = -(
+        #rhs1[i, j, k, l, m] +
+        #rhs2[i, j, k, l, m] +
+        (fx_interaction[i, j, l, m] - f_face[i, j, 4, l, m, 1]) * ps.dhl[k] +
+        (fx_interaction[i+1, j, l, m] - f_face[i, j, 2, l, m, 1]) * ps.dhr[k] #+
+        #(fy_interaction[i, j, k, m] - f_face[i, j, 1, k, m, 2]) * ps.dhl[l] +
+        #(fy_interaction[i, j+1, k, m] - f_face[i, j, 3, k, m, 2]) * ps.dhr[l]
+    )
 end
 
 rhs1[1, j, 2, 2, 1]

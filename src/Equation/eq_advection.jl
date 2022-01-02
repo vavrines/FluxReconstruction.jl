@@ -173,12 +173,11 @@ function period_advection!(du::AbstractMatrix, u, p)
 
     for ppp1 = 1:nsp
         for i in [1, ncell]
-            @inbounds du[i, ppp1] =
-                -(
-                    rhs1[i, ppp1] +
-                    (f_interaction[i] - f_face[i, 1]) * dgl[ppp1] +
-                    (f_interaction[i+1] - f_face[i, 2]) * dgr[ppp1]
-                )
+            @inbounds du[i, ppp1] = -(
+                rhs1[i, ppp1] +
+                (f_interaction[i] - f_face[i, 1]) * dgl[ppp1] +
+                (f_interaction[i+1] - f_face[i, 2]) * dgr[ppp1]
+            )
         end
     end
 end
