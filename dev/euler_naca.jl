@@ -1,5 +1,5 @@
 using FluxReconstruction, KitBase, Plots, OrdinaryDiffEq, LinearAlgebra
-using ProgressMeter: @showprogress
+using KitBase.ProgressMeter: @showprogress
 using Base.Threads: @threads
 
 cd(@__DIR__)
