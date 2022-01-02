@@ -1,34 +1,23 @@
-using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, OffsetArrays
-using ProgressMeter: @showprogress
+using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, Plots
+using KitBase.OffsetArrays
+using KitBase.ProgressMeter: @showprogress
 using Base.Threads: @threads
-using Plots
 
 begin
     set = Setup(
-        "gas",
-        "cylinder",
-        "2d0f0v",
-        "hll",
-        "nothing",
-        1, # species
-        3, # order of accuracy
-        "positivity", # limiter
-        "euler",
-        0.1, # cfl
-        1.0, # time
+        case = "shockvortex",
+        space = "2d0f0v",
+        flux = "hll",
+        collision = "nothing",
+        interpOrder = 3,
+        limiter = "positivity",
+        boundary = "fix",
+        cfl = 0.1,
+        maxTime = 1.0,
     )
     ps = FRPSpace2D(0.0, 2.0, 100, 0.0, 1.0, 50, set.interpOrder - 1, 1, 1)
     vs = nothing
-    gas = Gas(
-        1e-6,
-        1.12, # Mach
-        1.0,
-        3.0, # K
-        7 / 5,
-        0.81,
-        1.0,
-        0.5,
-    )
+    gas = Gas(Kn = 1e-6, Ma = 1.12, K = 1.0)
     ib = nothing
 
     ks = SolverSet(set, ps, vs, gas, ib)

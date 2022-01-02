@@ -1,38 +1,30 @@
-using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, OffsetArrays
-using ProgressMeter: @showprogress
-using Plots
+using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, Plots
+using KitBase.OffsetArrays
+using KitBase.ProgressMeter: @showprogress
+using Base.Threads: @threads
 
 pyplot()
 cd(@__DIR__)
 
 begin
     set = Setup(
-        "gas",
-        "cylinder",
-        "2d0f",
-        "hll",
-        "nothing",
-        1, # species
-        3, # order of accuracy
-        "positivity", # limiter
-        "euler",
-        0.1, # cfl
-        1.0, # time
+        case = "cylinder",
+        space = "2d0f",
+        flux = "hll",
+        collision = "nothing",
+        interpOrder = 3,
+        limiter = "positivity",
+        boundary = "euler",
+        cfl = 0.1,
+        maxTime = 1.0,
     )
-    ps0 = KitBase.CSpace2D(1.0, 6.0, 30, 0.0, π, 40, 0, 1)
-    deg = set.interpOrder - 1
-    ps = FRPSpace2D(ps0, deg)
+    ps = begin
+        ps0 = KitBase.CSpace2D(1.0, 6.0, 30, 0.0, π, 40, 0, 1)
+        deg = set.interpOrder - 1
+        FRPSpace2D(ps0, deg)
+    end
     vs = nothing
-    gas = Gas(
-        1e-6,
-        2.0, # Mach
-        1.0,
-        1.0, # K
-        5 / 3,
-        0.81,
-        1.0,
-        0.5,
-    )
+    gas = Gas(Kn = 1e-6, Ma = 1.2, K = 1.0)
     ib = nothing
 
     ks = SolverSet(set, ps0, vs, gas, ib)
@@ -153,11 +145,11 @@ tspan = (0.0, 1.0)
 p = (ps.J, ps.ll, ps.lr, ps.dhl, ps.dhr, ps.dl, ks.gas.γ)
 prob = ODEProblem(dudt!, u0, tspan, p)
 
-dt = 0.001
+dt = 0.0002
 nt = tspan[2] ÷ dt |> Int
 itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
 
-@showprogress for iter = 1:10#nt
+@showprogress for iter = 1:50#nt
     for i = 1:ps.nr, k = 1:ps.deg+1, l = 1:ps.deg+1
         u1 = itg.u[i, 1, 4-k, 4-l, :]
         ug1 = [u1[1], u1[2], -u1[3], u1[4]]
@@ -166,6 +158,9 @@ itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
         u2 = itg.u[i, ps.nθ, 4-k, 4-l, :]
         ug2 = [u2[1], u2[2], -u2[3], u2[4]]
         itg.u[i, ps.nθ+1, k, l, :] .= ug2
+    end
+    @inbounds for j = 1:ps.nθ÷2, k = 1:ps.deg+1, l = 1:ps.deg+1
+        itg.u[ps.nr, j, k, l, :] .= itg.u[ps.nr-1, j, k, l, :]
     end
 
     step!(itg)
@@ -180,7 +175,7 @@ end
 contourf(
     ps.x[1:ps.nr, 1:ps.nθ],
     ps.y[1:ps.nr, 1:ps.nθ],
-    sol[:, :, 4],
+    sol[:, :, 1],
     aspect_ratio = 1,
     legend = true,
 )

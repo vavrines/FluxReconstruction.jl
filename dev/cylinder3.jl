@@ -1,3 +1,9 @@
+"""
+As the cylinder flow blows up somehow, 
+here is the code which uses the split boundary under a lower Mach number.
+The initial still gas is driven by the far-field flow.
+"""
+
 using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, Plots
 using KitBase.OffsetArrays
 using KitBase.ProgressMeter: @showprogress
@@ -19,7 +25,7 @@ begin
         maxTime = 1.0,
     )
     ps = begin
-        ps0 = KitBase.CSpace2D(1.0, 6.0, 30, 0.0, π, 40, 0, 1)
+        ps0 = KitBase.CSpace2D(1.0, 6.0, 10, 0.0, π, 30, 0, 1)
         deg = set.interpOrder - 1
         FRPSpace2D(ps0, deg)
     end
@@ -32,7 +38,14 @@ end
 
 u0 = OffsetArray{Float64}(undef, 1:ps.nr, 0:ps.nθ+1, deg + 1, deg + 1, 4)
 for i in axes(u0, 1), j in axes(u0, 2), k in axes(u0, 3), l in axes(u0, 4)
-    prim = [1.0, 1.0, 0.0, 1.0]
+    sos = sound_speed(1.0, ks.gas.γ)
+    prim = begin
+        if i == ps.nr
+            [1.0, ks.gas.Ma * sos, 0.0, 1.0]
+        else
+            [1.0, 0.0, 0.0, 1.0]
+        end
+    end
     u0[i, j, k, l, :] .= prim_conserve(prim, ks.gas.γ)
 end
 
@@ -58,11 +71,10 @@ function dudt!(du, u, p, t)
     nsp = size(u, 3)
 
     f = OffsetArray{Float64}(undef, 1:nx, 0:ny+1, nsp, nsp, 4, 2)
-    @inbounds for i in axes(f, 1)
+    @inbounds @threads for i in axes(f, 1)
         for j in axes(f, 2), k = 1:nsp, l = 1:nsp
             fg, gg = euler_flux(u[i, j, k, l, :], γ)
             for m = 1:4
-                #f[i, j, k, l, m, :] .= inv(J[i, j][k, l]) * [fg[m], gg[m]]
                 f[i, j, k, l, m, :] .= iJ[i, j][k, l] * [fg[m], gg[m]]
             end
         end
@@ -70,7 +82,7 @@ function dudt!(du, u, p, t)
 
     u_face = OffsetArray{Float64}(undef, 1:nx, 0:ny+1, 4, nsp, 4)
     f_face = OffsetArray{Float64}(undef, 1:nx, 0:ny+1, 4, nsp, 4, 2)
-    @inbounds for i in axes(u_face, 1)
+    @inbounds @threads for i in axes(u_face, 1)
         for j in axes(u_face, 2), l = 1:nsp, m = 1:4
             u_face[i, j, 1, l, m] = dot(u[i, j, l, :, m], ll)
             u_face[i, j, 2, l, m] = dot(u[i, j, :, l, m], lr)
@@ -87,7 +99,7 @@ function dudt!(du, u, p, t)
     end
 
     fx_interaction = zeros(nx + 1, ny, nsp, 4)
-    @inbounds for i = 2:nx
+    @inbounds @threads for i = 2:nx
         for j = 1:ny, k = 1:nsp
             fw = @view fx_interaction[i, j, k, :]
             uL = local_frame(u_face[i-1, j, 2, k, :], n1[i, j][1], n1[i, j][2])
@@ -97,29 +109,26 @@ function dudt!(du, u, p, t)
         end
     end
 
-    @inbounds for j = 1:ny
+    @inbounds @threads for j = 1:ny
         for k = 1:nsp
             ul = local_frame(u_face[1, j, 4, k, :], n1[1, j][1], n1[1, j][2])
-            prim = conserve_prim(ul, γ)
-            pn = zeros(4)
-
-            pn[2] = -prim[2]
-            pn[3] = prim[3]
-            pn[4] = 2.0 - prim[4]
-            tmp = (prim[4] - 1.0)
-            pn[1] = (1 - tmp) / (1 + tmp) * prim[1]
-
-            ub = prim_conserve(pn, γ)
-            #ub = global_frame(prim_conserve(pn, γ), n1[1, j][1], n1[1, j][2])
-
             fw = @view fx_interaction[1, j, k, :]
-            flux_hll!(fw, ub, Array(ul), γ, 1.0)
+            flux_boundary_maxwell!(
+                fw,
+                [1., 0., 0., 1.],
+                ul,
+                1,
+                γ,
+                1.0,
+                1.0,
+                1,
+            )
             fw .= global_frame(fw, n1[1, j][1], n1[1, j][2])
         end
     end
 
     fy_interaction = zeros(nx, ny + 1, nsp, 4)
-    @inbounds for i = 1:nx
+    @inbounds @threads for i = 1:nx
         for j = 1:ny+1, k = 1:nsp
             fw = @view fy_interaction[i, j, k, :]
             uL = local_frame(u_face[i, j-1, 3, k, :], n2[i, j][1], n2[i, j][2])
@@ -130,19 +139,19 @@ function dudt!(du, u, p, t)
     end
 
     rhs1 = zeros(nx, ny, nsp, nsp, 4)
-    @inbounds for i = 1:nx
+    @inbounds @threads for i = 1:nx
         for j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
             rhs1[i, j, k, l, m] = dot(f[i, j, :, l, m, 1], lpdm[k, :])
         end
     end
     rhs2 = zeros(nx, ny, nsp, nsp, 4)
-    @inbounds for i = 1:nx
+    @inbounds @threads for i = 1:nx
         for j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
             rhs2[i, j, k, l, m] = dot(f[i, j, k, :, m, 2], lpdm[l, :])
         end
     end
 
-    @inbounds @threads for i = 1:nx-1
+    @inbounds @threads for i = 2:nx-1
         for j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
             fxL = (inv(ps.Ji[i, j][4, l])*n1[i, j])[1] * fx_interaction[i, j, l, m]
             fxR = (inv(ps.Ji[i, j][2, l])*n1[i+1, j])[1] * fx_interaction[i+1, j, l, m]
@@ -189,14 +198,14 @@ end
 
 sol = zeros(ps.nr, ps.nθ, 4)
 for i = 1:ps.nr, j = 1:ps.nθ
-    sol[i, j, :] .= conserve_prim(itg.u[i, j, 2, 2, :], ks.gas.γ)
+    sol[i, j, :] .= conserve_prim(itg.u[i, j, 1, 1, :], ks.gas.γ)
     sol[i, j, 4] = 1 / sol[i, j, 4]
 end
 
 contourf(
-    ps.x[1:ps.nr, 1:ps.nθ],
-    ps.y[1:ps.nr, 1:ps.nθ],
-    sol[:, :, 3],
+    ps.x[1:ps.nr-1, 1:ps.nθ],
+    ps.y[1:ps.nr-1, 1:ps.nθ],
+    sol[1:ps.nr-1, :, 2],
     aspect_ratio = 1,
     legend = true,
 )
