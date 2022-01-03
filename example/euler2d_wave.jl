@@ -2,11 +2,9 @@
 # 2D traveling wave solution for the Euler equations
 # ============================================================
 
-using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, OffsetArrays
-using ProgressMeter: @showprogress
-using Plots
-
-pyplot()
+using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, Plots
+using KitBase.OffsetArrays
+using KitBase.ProgressMeter: @showprogress
 cd(@__DIR__)
 
 begin
@@ -27,18 +25,8 @@ begin
     ps0 = KitBase.PSpace2D(0.0, 1.0, 20, 0.0, 1.0, 30, 1, 1)
     deg = set.interpOrder - 1
     ps = FRPSpace2D(ps0, deg)
-
     vs = nothing
-    gas = Gas(
-        1e-6,
-        2.0, # Mach
-        1.0,
-        1.0, # K
-        5 / 3,
-        0.81,
-        1.0,
-        0.5,
-    )
+    gas = Gas(Kn = 1e-6, K = 1.0)
     ib = nothing
 
     ks = SolverSet(set, ps0, vs, gas, ib)

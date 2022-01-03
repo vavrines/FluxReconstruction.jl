@@ -1,5 +1,5 @@
 using FluxReconstruction, OrdinaryDiffEq, Plots, LinearAlgebra, KitBase
-using ProgressMeter: @showprogress
+using KitBase.ProgressMeter: @showprogress
 
 ps0 = KitBase.PSpace2D(0.0, 1.0, 20, 0.0, 1.0, 20)
 deg = 2
