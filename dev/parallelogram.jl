@@ -9,6 +9,8 @@
 
 δx = 1, δy = 0.5, θ = π / 4
 
+Instability is somehow detected for order larger than 2.
+
 """
 
 using KitBase, FluxReconstruction, LinearAlgebra, OrdinaryDiffEq, Plots
