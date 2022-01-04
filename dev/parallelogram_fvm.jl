@@ -29,7 +29,6 @@ set = Setup(
     maxTime = 1.0,
 )
 
-
 begin
     lx, ly = 1.0, 0.5
     x0 = 0.0
