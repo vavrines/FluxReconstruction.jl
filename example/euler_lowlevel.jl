@@ -1,5 +1,5 @@
 using KitBase, FluxReconstruction, OrdinaryDiffEq, LinearAlgebra, Plots
-using ProgressMeter: @showprogress
+using KitBase.ProgressMeter: @showprogress
 
 begin
     x0 = 0
