@@ -1,5 +1,5 @@
 """
-    JacobiP(x, alpha, beta, N)
+$(SIGNATURES)
 
 Evaluate Jacobi polynomial P_n^(α,β)(x)
 Note that the order of arguments and return values are different from Jacobi.jl
@@ -42,7 +42,10 @@ function JacobiP(x::T, alpha, beta, N) where {T<:Real}
     return P
 end
 
-function JacobiP(x::AbstractArray{T}, alpha, beta, N) where {T<:Real}
+"""
+$(SIGNATURES)
+"""
+function JacobiP(x::AbstractArray, alpha, beta, N)
     xp = copy(x)
     PL = zeros(N + 1, length(xp))
 
@@ -81,6 +84,9 @@ function JacobiP(x::AbstractArray{T}, alpha, beta, N) where {T<:Real}
     return P
 end
 
+"""
+$(SIGNATURES)
+"""
 function ∂JacobiP(r::T, alpha, beta, N) where {T<:Real}
     dP = 0.0
     if N != 0
@@ -90,6 +96,9 @@ function ∂JacobiP(r::T, alpha, beta, N) where {T<:Real}
     return dP
 end
 
+"""
+$(SIGNATURES)
+"""
 function ∂JacobiP(r::AbstractArray{T}, alpha, beta, N) where {T<:Real}
     dP = zero(r)
     if N != 0

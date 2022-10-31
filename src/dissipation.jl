@@ -1,5 +1,5 @@
 """
-    shock_detector(Se, deg, S0 = -3.0 * log10(deg), κ = 4.0)
+$(SIGNATURES)
 
 Detect if the solution belongs to a strong discontinuity
 
@@ -24,7 +24,7 @@ end
 
 
 """
-    positive_limiter(u::AbstractMatrix{T}, γ, weights, ll, lr) where {T<:AbstractFloat}
+$(SIGNATURES)
 
 Slope limiter to preserve positivity
 

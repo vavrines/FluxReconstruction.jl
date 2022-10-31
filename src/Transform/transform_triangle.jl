@@ -1,10 +1,9 @@
 """
-    simplex_basis(a, b, i, j)
+$(SIGNATURES)
 
 Evaluate 2D orthonormal polynomial at simplex (a, b) of order (i, j)
 
 Translated from Simplex2DP.m
-
 """
 function simplex_basis(a::T, b::T, i, j) where {T<:Real}
     # x, a, b, n
@@ -14,6 +13,9 @@ function simplex_basis(a::T, b::T, i, j) where {T<:Real}
     return sqrt(2.0) * h1 * h2 * (1 - b)^i
 end
 
+"""
+$(SIGNATURES)
+"""
 simplex_basis(a::AbstractVector{T}, b::AbstractVector{T}, i, j) where {T<:Real} =
     [simplex_basis(a[k], b[k], i, j) for k in eachindex(a)]
 

@@ -1,5 +1,5 @@
 """
-    lagrange_point(sp::AbstractVector{T}, x) where {T<:Real}
+$(SIGNATURES)
 
 Calculate Legendre polynomials of solution points sp at location x
 """
@@ -32,9 +32,7 @@ end
 
 
 """
-    ∂lagrange(sp::T) where {T<:AbstractVector{<:Real}}
-    ∂lagrange(V, Vr)
-    ∂lagrange(V, Vr, Vs)
+$(SIGNATURES)
 
 Calculate derivatives of Lagrange polynomials dlⱼ(rᵢ)
 """
@@ -65,6 +63,9 @@ end
 # Vandermonde matrix based evaluation
 # ------------------------------------------------------------
 
+"""
+$(SIGNATURES)
+"""
 function ∂lagrange(V, Vr)
     Np = size(V, 1)
 
@@ -76,6 +77,9 @@ function ∂lagrange(V, Vr)
     return ∂l
 end
 
+"""
+$(SIGNATURES)
+"""
 function ∂lagrange(V, Vr, Vs)
     Np = size(V, 1)
 
@@ -90,8 +94,9 @@ end
 
 
 """
-One-shot calculation of derivatives of Lagrange polynomials and the values at cell edge
+$(SIGNATURES)
 
+One-shot calculation of derivatives of Lagrange polynomials and the values at cell edge
 """
 function standard_lagrange(x)
     ll = lagrange_point(x, -1.0)

@@ -1,7 +1,7 @@
 """
-Calculate global coordinates of solution points
+$(SIGNATURES)
 
-    global_sp(xi, r)
+Calculate global coordinates of solution points
 
 Line elements
 """
@@ -15,7 +15,7 @@ function global_sp(xi::AbstractVector{T}, r::AbstractVector{T}) where {T<:Real} 
 end
 
 """
-    global_sp(xi, yi, r)
+$(SIGNATURES)
 
 Quadrilateral elements
 """
@@ -41,7 +41,7 @@ function global_sp(
 end
 
 """
-    global_sp(points, cellid, N)
+$(SIGNATURES)
 
 Triangle elements
 
@@ -93,9 +93,9 @@ end=#
 
 
 """
-Calculate global coordinates of flux points
+$(SIGNATURES)
 
-    global_fp(points, cellid, N)
+Calculate global coordinates of flux points
 
 Triangle elements
 """

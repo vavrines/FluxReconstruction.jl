@@ -1,5 +1,5 @@
 """
-    tri_quadrature(deg; vertices, transform)
+$(SIGNATURES)
 
 Calculate quadrature points in a triangle
 
@@ -70,7 +70,7 @@ end
 
 
 """
-    triface_quadrature(N)
+$(SIGNATURES)
 
 Calculate quadrature points along a face of right triangle
 

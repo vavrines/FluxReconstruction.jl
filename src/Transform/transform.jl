@@ -5,8 +5,7 @@
 include("transform_triangle.jl")
 
 """
-    vandermonde_matrix(N, r)
-    vandermonde_matrix(N, r, s)
+$(SIGNATURES)
 
 Compute Vandermonde matrix for node-mode transform
 
@@ -26,8 +25,14 @@ function vandermonde_matrix(N, r)
     return V1D
 end
 
+"""
+$(SIGNATURES)
+"""
 vandermonde_matrix(::Type{Line}, N, r) = vandermonde_matrix(N, r)
 
+"""
+$(SIGNATURES)
+"""
 function vandermonde_matrix(::Type{Tri}, N, r, s)
     Np = (N + 1) * (N + 2) ÷ 2
     V2D = zeros(eltype(r), length(r), Np)
@@ -44,6 +49,9 @@ function vandermonde_matrix(::Type{Tri}, N, r, s)
     return V2D
 end
 
+"""
+$(SIGNATURES)
+"""
 function vandermonde_matrix(::Type{Quad}, N, r, s)
     Np = (N + 1)^2
     V = zeros(eltype(r), length(r), Np)
@@ -61,8 +69,7 @@ end
 
 
 """
-    ∂vandermonde_matrix(N, r)
-    ∂vandermonde_matrix(N, r, s)
+$(SIGNATURES)
 
 gradient of the modal basis (i,j) at (r,s) at order N
 
@@ -77,8 +84,14 @@ function ∂vandermonde_matrix(N::T, r) where {T<:Integer}
     return Vr
 end
 
+"""
+$(SIGNATURES)
+"""
 ∂vandermonde_matrix(::Type{Line}, N, r) = ∂vandermonde_matrix(N, r)
 
+"""
+$(SIGNATURES)
+"""
 function ∂vandermonde_matrix(::Type{Tri}, N::T, r, s) where {T<:Integer}
     V2Dr = zeros(eltype(r), length(r), (N + 1) * (N + 2) ÷ 2)
     V2Ds = zeros(eltype(r), length(r), (N + 1) * (N + 2) ÷ 2)
@@ -97,6 +110,9 @@ function ∂vandermonde_matrix(::Type{Tri}, N::T, r, s) where {T<:Integer}
     return V2Dr, V2Ds
 end
 
+"""
+$(SIGNATURES)
+"""
 function ∂vandermonde_matrix(::Type{Quad}, N::T, r, s) where {T<:Integer}
     V2Dr = zeros(eltype(r), length(r), (N + 1)^2)
     V2Ds = zeros(eltype(r), length(r), (N + 1)^2)

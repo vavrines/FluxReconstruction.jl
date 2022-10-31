@@ -2,28 +2,13 @@ abstract type AbstractStructFRSpace <: KitBase.AbstractStructPhysicalSpace end
 abstract type AbstractUnstructFRSpace <: KitBase.AbstractUnstructPhysicalSpace end
 
 """
-    struct FRPSpace1D{
-        A,
-        I<:Integer,
-        B<:AbstractVector{<:AbstractFloat},
-        C<:AbstractMatrix{<:AbstractFloat},
-    } <: AbstractStructFRSpace
-        base::A
-        deg::I
-        J::B
-        np::I
-        xpl::B
-        xpg::C
-        wp::B
-        dl::C
-        ll::B
-        lr::B
-        dhl::B
-        dhr::B
-    end
+$(TYPEDEF)
 
 1D physical space for flux reconstruction method
 
+# Fields
+
+$(FIELDS)
 """
 struct FRPSpace1D{
     A,
@@ -99,10 +84,13 @@ end
 
 
 """
-    
+$(TYPEDEF)
 
 2D physical space for flux reconstruction method
 
+# Fields
+
+$(FIELDS)
 """
 struct FRPSpace2D{
     A,
@@ -251,8 +239,13 @@ end
 
 
 """
+$(TYPEDEF)
+
 Unstructued physical space for flux reconstruction method
 
+# Fields
+
+$(FIELDS)
 """
 struct UnstructFRPSpace{
     A,

@@ -1,5 +1,5 @@
 """
-    neighbor_fpidx(IDs, ps, fpg)
+$(SIGNATURES)
 
 global id
 local rank

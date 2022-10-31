@@ -11,6 +11,7 @@ using OrdinaryDiffEq
 using PyCall
 using KitBase
 using KitBase.FastGaussQuadrature
+using KitBase.FiniteMesh.DocStringExtensions
 using KitBase.OffsetArrays
 using KitBase.SpecialFunctions
 

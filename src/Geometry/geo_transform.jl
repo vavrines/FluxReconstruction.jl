@@ -1,5 +1,5 @@
 """
-    r_x(r, vl, vr)
+$(SIGNATURES)
 
 Transfer coordinate r -> x from standard to real elements
 
@@ -8,13 +8,11 @@ r_x(r, vl, vr) = ((1.0 - r) / 2.0) * vl + ((1.0 + r) / 2.0) * vr
 
 
 """
+$(SIGNATURES)
+
 Transfer coordinate r -> x from standard to real elements
 
-Triangle elements:
-
-    rs_xy(r, s, v1, v2, v3)
-    rs_xy(v, v1, v2, v3)
-
+Triangle element
 """
 function rs_xy(
     r,
@@ -26,6 +24,11 @@ function rs_xy(
     return @. -(r + s) / 2 * v1 + (r + 1) / 2 * v2 + (s + 1) / 2 * v3
 end
 
+"""
+$(SIGNATURES)
+
+Triangle element
+"""
 function rs_xy(
     v::AbstractVector{T},
     v1::AbstractVector{T},
@@ -36,6 +39,11 @@ function rs_xy(
     return rs_xy(r, s, v1, v2, v3)
 end
 
+"""
+$(SIGNATURES)
+
+Quadrilateral element
+"""
 function rs_xy(
     r,
     s,
@@ -52,13 +60,11 @@ end
 
 
 """
-    xy_rs(x, y)
-    xy_rs(coords)
+$(SIGNATURES)
 
 Transfer coordinates (x, y) -> (r,s) from equilateral to right triangle
-
 """
-function xy_rs(x::T, y::T) where {T<:Real}
+function xy_rs(x::T, y::T) where {T}
     L1 = (sqrt(3.0) * y + 1.0) / 3.0
     L2 = (-3.0 * x - sqrt(3.0) * y + 2.0) / 6.0
     L3 = (3.0 * x - sqrt(3.0) * y + 2.0) / 6.0
@@ -68,7 +74,10 @@ function xy_rs(x::T, y::T) where {T<:Real}
     return r, s
 end
 
-function xy_rs(x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
+"""
+$(SIGNATURES)
+"""
+function xy_rs(x::AbstractVector{T}, y::AbstractVector{T}) where {T}
     Np = length(x)
     r = zeros(Np)
     s = zeros(Np)
@@ -80,17 +89,18 @@ function xy_rs(x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
     return r, s
 end
 
+"""
+$(SIGNATURES)
+"""
 function xy_rs(coords::AbstractMatrix{T}) where {T<:Real}
     return xy_rs(coords[:, 1], coords[:, 2])
 end
 
 
 """
-    rs_ab(r, s)
-    rs_ab(coords)
+$(SIGNATURES)
 
 Transfer coordinates (r,s) -> (a,b) in a triangle
-
 """
 function rs_ab(r::T, s::T) where {T<:Real}
     a = ifelse(s != 1.0, 2.0 * (1.0 + r) / (1.0 - s) - 1.0, -1.0)
@@ -99,6 +109,9 @@ function rs_ab(r::T, s::T) where {T<:Real}
     return a, b
 end
 
+"""
+$(SIGNATURES)
+"""
 function rs_ab(r::AbstractVector{T}, s::AbstractVector{T}) where {T<:Real}
     a = zero(r)
     b = zero(s)
@@ -110,6 +123,9 @@ function rs_ab(r::AbstractVector{T}, s::AbstractVector{T}) where {T<:Real}
     return a, b
 end
 
+"""
+$(SIGNATURES)
+"""
 function rs_ab(coords::AbstractMatrix{T}) where {T<:Real}
     return rs_ab(coords[:, 1], coords[:, 2])
 end

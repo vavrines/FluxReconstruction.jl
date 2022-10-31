@@ -1,5 +1,5 @@
 """
-    filter_exp(N, Nc, s, V, invV)
+$(SIGNATURES)
 
 Construct exponential filter for nodal solution
 
@@ -22,7 +22,7 @@ end
 
 
 """
-    filter_exp2d(N, Nc, s)
+$(SIGNATURES)
 
 Construct exponential filter for modal solution
 
@@ -49,7 +49,7 @@ end
 
 
 """
-    basis_norm(deg)
+$(SIGNATURES)
 
 Calculate norm of polynomial basis
 """

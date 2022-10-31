@@ -1,7 +1,7 @@
 """
-Calculate Jacobians for elements
+$(SIGNATURES)
 
-    rs_jacobi(cells, points)
+Calculate Jacobians for elements
 
 Isosceles right triangle element
 
@@ -43,7 +43,7 @@ function rs_jacobi(cells, points)
 end
 
 """
-    rs_jacobi(r, s, vertices)
+$(SIGNATURES)
 
 Quadrilateral element
 

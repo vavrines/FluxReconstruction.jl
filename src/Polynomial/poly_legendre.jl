@@ -1,5 +1,5 @@
 """
-    legendre_point(p::T) where {T<:Integer}
+$(SIGNATURES)
 
 Calculate Legendre points of polynomial degree p
 """
@@ -7,7 +7,7 @@ legendre_point(p::T) where {T<:Integer} = gausslegendre(p + 1)[1]
 
 
 """
-    ∂legendre(p::T, x) where {T<:Integer}
+$(SIGNATURES)
 
 Calculate derivatives of Legendre polynomials of degree p at location x
 """
@@ -24,7 +24,7 @@ end
 
 
 """
-    ∂radau(p::TI, x::TU) where {TI<:Integer,TU<:Union{Real,AbstractArray{<:Real,1}}}
+$(SIGNATURES)
 
 Calculate derivatives of Radau polynomials of degree p at location x
 """
