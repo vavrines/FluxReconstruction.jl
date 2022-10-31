@@ -10,6 +10,7 @@ using NonlinearSolve
 using OrdinaryDiffEq
 using PyCall
 using KitBase
+using KitBase: AV, AM, AA, advection_flux
 using KitBase.FastGaussQuadrature
 using KitBase.FiniteMesh.DocStringExtensions
 using KitBase.OffsetArrays
@@ -30,6 +31,7 @@ export legendre_point,
        lagrange_point,
        ∂legendre,
        ∂radau,
+       ∂sd,
        ∂lagrange,
        standard_lagrange,
        simplex_basis,
