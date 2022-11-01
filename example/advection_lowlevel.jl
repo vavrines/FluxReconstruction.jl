@@ -1,133 +1,95 @@
 using KitBase, FluxReconstruction, OrdinaryDiffEq
+using Base.Threads: @threads
 
-begin
-    x0 = -1
-    x1 = 1
-    ncell = 100
-    nface = ncell + 1
-    dx = (x1 - x0) / ncell
-    deg = 2 # polynomial degree
-    nsp = deg + 1
-    cfl = 0.1
-    dt = cfl * dx
-    t = 0.0
-    a = 1.0
-end
-
-pspace = FRPSpace1D(x0, x1, ncell, deg)
-
-begin
-    xFace = collect(x0:dx:x1)
-    xGauss = legendre_point(deg)
-    xsp = global_sp(xFace, xGauss)
-    ll = lagrange_point(xGauss, -1.0)
-    lr = lagrange_point(xGauss, 1.0)
-    lpdm = ∂lagrange(xGauss)
-end
-
-u = zeros(ncell, nsp)
-for i = 1:ncell, ppp1 = 1:nsp
-    u[i, ppp1] = exp(-20.0 * xsp[i, ppp1]^2)
-end
-uold = deepcopy(u)
-f = zeros(ncell, nsp)
-u_face = zeros(ncell, 2)
-f_face = zeros(ncell, 2)
-au = zeros(nface);
-f_interaction = zeros(nface)
-
-e2f = zeros(Int, ncell, 2)
-for i = 1:ncell
-    if i == 1
-        e2f[i, 2] = nface
-        e2f[i, 1] = i + 1
-    elseif i == ncell
-        e2f[i, 2] = i
-        e2f[i, 1] = 1
-    else
-        e2f[i, 2] = i
-        e2f[i, 1] = i + 1
-    end
-end
-f2e = zeros(Int, nface, 2)
-for i = 1:nface
-    if i == 1
-        f2e[i, 1] = i
-        f2e[i, 2] = ncell
-    elseif i == nface
-        f2e[i, 1] = 1
-        f2e[i, 2] = i - 1
-    else
-        f2e[i, 1] = i
-        f2e[i, 2] = i - 1
-    end
-end
-
-function mol!(du, u, p, t) # method of lines
-    xFace, e2f, f2e, a, deg, ll, lr, lpdm = p
+function rhs!(du, u, p, t)
+    f, u_face, f_face, f_interaction, rhs1, J, ll, lr, lpdm, dgl, dgr, a = p
 
     ncell = size(u, 1)
     nsp = size(u, 2)
 
-    f = zeros(ncell, nsp)
-    for i = 1:ncell, j = 1:nsp
-        J = (xFace[i+1] - xFace[i]) / 2.0
-        f[i, j] = advection_flux(u[i, j], a) / J
+    @inbounds @threads for j = 1:nsp
+        for i = 1:ncell
+            f[i, j] = KitBase.advection_flux(u[i, j], a) / J[i]
+        end
     end
 
-    u_face = zeros(ncell, nsp)
-    f_face = zeros(ncell, nsp)
+    u_face[:, 1] .= u * ll
+    f_face[:, 1] .= f * ll
+    u_face[:, 2] .= u * lr
+    f_face[:, 2] .= f * lr
 
-    u_face[:, 1] .= u * lr
-    f_face[:, 1] .= f * lr
-    u_face[:, 2] .= u * ll
-    f_face[:, 2] .= f * ll
-    #=for i = 1:ncell, j = 1:nsp
-        # right face of element i
-        u_face[i, 1] += u[i, j] * lr[j]
-        f_face[i, 1] += f[i, j] * lr[j]
-
-        # left face of element i
-        u_face[i, 2] += u[i, j] * ll[j]
-        f_face[i, 2] += f[i, j] * ll[j]
-    end=#
-
-    au = zeros(nface)
-    for i = 1:nface
-        au[i] =
-            (f_face[f2e[i, 1], 2] - f_face[f2e[i, 2], 1]) /
-            (u_face[f2e[i, 1], 2] - u_face[f2e[i, 2], 1] + 1e-6)
-    end
-
-    f_interaction = zeros(nface)
-    for i = 1:nface
+    @inbounds @threads for i = 2:ncell
+        au = (f_face[i, 1] - f_face[i-1, 2]) / (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
         f_interaction[i] = (
-            0.5 * (f_face[f2e[i, 2], 1] + f_face[f2e[i, 1], 2]) -
-            0.5 * abs(au[i]) * (u_face[f2e[i, 1], 2] - u_face[f2e[i, 2], 1])
+            0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
+            0.5 * abs(au) * (u_face[i, 1] - u_face[i-1, 2])
         )
     end
+    au = (f_face[1, 1] - f_face[ncell, 2]) / (u_face[1, 1] - u_face[ncell, 2] + 1e-8)
+    f_interaction[1] = (
+        0.5 * (f_face[ncell, 2] + f_face[1, 1]) -
+        0.5 * abs(au) * (u_face[1, 1] - u_face[ncell, 2])
+    )
+    f_interaction[end] = f_interaction[1]
 
-    dgl, dgr = ∂radau(deg, xGauss)
-
-    rhs1 = zeros(ncell, nsp)
-    for i = 1:ncell, ppp1 = 1:nsp, k = 1:nsp
-        rhs1[i, ppp1] += f[i, k] * lpdm[ppp1, k]
+    rhs1 .= 0.0
+    @inbounds @threads for ppp1 = 1:nsp
+        for i = 1:ncell
+            for k = 1:nsp
+                rhs1[i, ppp1] += f[i, k] * lpdm[ppp1, k]
+            end
+        end
     end
 
-    for i = 1:ncell, ppp1 = 1:nsp
-        du[i, ppp1] = -(
-            rhs1[i, ppp1] +
-            (f_interaction[e2f[i, 2]] - f_face[i, 2]) * dgl[ppp1] +
-            (f_interaction[e2f[i, 1]] - f_face[i, 1]) * dgr[ppp1]
-        )
+    @inbounds @threads for ppp1 = 1:nsp
+        for i = 1:ncell
+            du[i, ppp1] = -(
+                rhs1[i, ppp1] +
+                (f_interaction[i] - f_face[i, 1]) * dgl[ppp1] +
+                (f_interaction[i+1] - f_face[i, 2]) * dgr[ppp1]
+            )
+        end
     end
 end
 
+cfg = (x0 = -1, x1 = 1, nx = 100, deg = 2, cfl = 0.05, t = 0.0, a = 1.0)
+dx = (cfg.x1 - cfg.x0) / cfg.nx
+dt = cfg.cfl * dx
+
+ps = FRPSpace1D(; cfg...)
+
+u = zeros(ps.nx, ps.deg + 1)
+for i in axes(u, 1), j in axes(u, 2)
+    u[i, j] = sin(π * ps.xpg[i, j])
+end
+
+begin
+    f = zero(u)
+    rhs = zero(u)
+    ncell = size(u, 1)
+    u_face = zeros(eltype(u), ncell, 2)
+    f_face = zeros(eltype(u), ncell, 2)
+    f_interaction = zeros(eltype(u), ncell + 1)
+    p = (
+        f,
+        u_face,
+        f_face,
+        f_interaction,
+        rhs,
+        ps.J,
+        ps.ll,
+        ps.lr,
+        ps.dl,
+        ps.dhl,
+        ps.dhr,
+        cfg.a,
+    )
+end
+
 tspan = (0.0, 2.0)
-p = (xFace, e2f, f2e, a, deg, ll, lr, lpdm)
-prob = ODEProblem(mol!, u, tspan, p)
-sol = solve(prob, Tsit5(), reltol = 1e-8, abstol = 1e-8, progress = true)
+prob = ODEProblem(rhs!, u, tspan, p)
+sol = solve(prob, Tsit5(), progress = true)
 
 using Plots
-plot(xsp[:, 2], sol.u[end][:, 2], label = "t=2")
-scatter!(xsp[:, 2], exp.(-20 .* xsp[:, 2] .^ 2), label = "t=0")
+plot(ps.xpg[:, 2], sol.u[end][:, 2], label = "t=2")
+plot!(ps.xpg[:, 2], u[:, 2], label = "t=0", line = :dash)
