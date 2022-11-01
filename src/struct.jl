@@ -37,7 +37,7 @@ struct FRPSpace1D{
     iV::C
 end
 
-function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integer)
+function FRPSpace1D(x0, x1, nx::Integer, deg::Integer, ng = 0::Integer, correction = :radau)
     ps = PSpace1D(x0, x1, nx, ng)
     J = [ps.dx[i] / 2 for i in eachindex(ps.dx)]
 
@@ -60,7 +60,9 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
     dll = ∂lf[1, :]
     dlr = ∂lf[2, :]
 
-    dhl, dhr = ∂radau(deg, r)
+    fc = eval(Symbol("∂" * String(correction)))
+    dhl, dhr = fc(deg, r)
+    #dhl, dhr = ∂radau(deg, r)
 
     return FRPSpace1D{typeof(ps),typeof(deg),typeof(J),typeof(xp)}(
         ps,
@@ -81,6 +83,9 @@ function FRPSpace1D(x0::Real, x1::Real, nx::Integer, deg::Integer, ng = 0::Integ
         iV,
     )
 end
+
+FRPSpace1D(;x0, x1, nx, deg, ng = 0, correction = :radau, kwargs...) =
+    FRPSpace1D(x0, x1, nx, deg, ng, correction)
 
 
 """
@@ -236,6 +241,9 @@ function FRPSpace2D(
     ps = PSpace2D(x0, x1, nx, y0, y1, ny, ngx, ngy)
     return FRPSpace2D(ps, deg)
 end
+
+FRPSpace2D(;x0, x1, nx, y0, y1, ny, deg, ngx = 0, ngy = 0, kwargs...) =
+    FRPSpace2D(x0, x1, nx, y0, y1, ny, deg, ngx, ngy)
 
 
 """
