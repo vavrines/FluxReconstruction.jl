@@ -131,13 +131,13 @@ ncells = [4, 8, 16, 32, 64, 128]
     p = (ps.nx, ps.deg + 1, ps.J, ps.ll, ps.lr, ps.dl, ps.dhl, ps.dhr, γ)
     prob = ODEProblem(dudt!, u, tspan, p)
     nt = tspan[2] / dt |> Int # Alignment is required here
-    
+
     itg = solve(prob, Tsit5(), saveat = tspan[2], adaptive = false, dt = dt)
     #itg = init(prob, Tsit5(), saveat = tspan[2], adaptive = false, dt = dt)
     #for iter = 1:nt
     #    step!(itg)
     #end
-    
+
     sol = extract_sol(itg, ps, γ)
 
     Δx = (x1 - x0) / ncell

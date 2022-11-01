@@ -84,7 +84,7 @@ function FRPSpace1D(x0, x1, nx::Integer, deg::Integer, ng = 0::Integer, correcti
     )
 end
 
-FRPSpace1D(;x0, x1, nx, deg, ng = 0, correction = :radau, kwargs...) =
+FRPSpace1D(; x0, x1, nx, deg, ng = 0, correction = :radau, kwargs...) =
     FRPSpace1D(x0, x1, nx, deg, ng, correction)
 
 
@@ -242,7 +242,7 @@ function FRPSpace2D(
     return FRPSpace2D(ps, deg)
 end
 
-FRPSpace2D(;x0, x1, nx, y0, y1, ny, deg, ngx = 0, ngy = 0, kwargs...) =
+FRPSpace2D(; x0, x1, nx, y0, y1, ny, deg, ngx = 0, ngy = 0, kwargs...) =
     FRPSpace2D(x0, x1, nx, y0, y1, ny, deg, ngx, ngy)
 
 

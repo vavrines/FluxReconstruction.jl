@@ -113,16 +113,7 @@ function dudt!(du, u, p, t)
         for k = 1:nsp
             ul = local_frame(u_face[1, j, 4, k, :], n1[1, j][1], n1[1, j][2])
             fw = @view fx_interaction[1, j, k, :]
-            flux_boundary_maxwell!(
-                fw,
-                [1., 0., 0., 1.],
-                ul,
-                1,
-                γ,
-                1.0,
-                1.0,
-                1,
-            )
+            flux_boundary_maxwell!(fw, [1.0, 0.0, 0.0, 1.0], ul, 1, γ, 1.0, 1.0, 1)
             fw .= global_frame(fw, n1[1, j][1], n1[1, j][2])
         end
     end

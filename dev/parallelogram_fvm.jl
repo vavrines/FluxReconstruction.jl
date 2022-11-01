@@ -109,15 +109,7 @@ t = 0.0
         mode = :hll,
         bc = [:period, :period, :extra, :extra],
     )
-    update!(
-        ks,
-        ctr,
-        a1face,
-        a2face,
-        dt,
-        zeros(4);
-        bc = [:period, :period, :extra, :extra],
-    )
+    update!(ks, ctr, a1face, a2face, dt, zeros(4); bc = [:period, :period, :extra, :extra])
 
     t += dt
 end
