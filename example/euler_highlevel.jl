@@ -42,10 +42,10 @@ itg = init(prob, Midpoint(), saveat = tspan[2], adaptive = false, dt = dt)
         if isd
             for s = 1:3
                 û = ps.iV * itg.u[i, :, s]
-                FR.modal_filter!(û, λ; filter = :l2)
-                #FR.modal_filter!(û, ℓ; filter = :lasso)
-                #FR.modal_filter!(û, 4; filter = :exp)
-                #FR.modal_filter!(û, 6; filter = :houli)
+                KB.modal_filter!(û, λ; filter = :l2)
+                #KB.modal_filter!(û, ℓ; filter = :lasso)
+                #KB.modal_filter!(û, 4; filter = :exp)
+                #KB.modal_filter!(û, 6; filter = :houli)
                 itg.u[i, :, s] .= ps.V * û
             end
         end

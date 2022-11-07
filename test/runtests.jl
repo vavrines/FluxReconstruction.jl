@@ -27,14 +27,6 @@ positive_limiter(ones(6, 3), 5 / 3, 1 / 6, ps.ll, ps.lr)
 
 let u = rand(deg + 1)
     ℓ = FR.basis_norm(deg)
-
-    modal_filter!(u, 1e-6; filter = :l2)
-    modal_filter!(u, 1e-6; filter = :l2opt)
-    modal_filter!(u, 1e-6, ℓ; filter = :l1)
-    modal_filter!(u, ℓ; filter = :lasso)
-    modal_filter!(u, 10; filter = :exp)
-    modal_filter!(u, 10; filter = :houli)
-
     # 2D exponential filter
     FR.filter_exp(2, 10, Array(ps.V))
 end
