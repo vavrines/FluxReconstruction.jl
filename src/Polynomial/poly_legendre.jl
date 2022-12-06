@@ -26,7 +26,7 @@ end
 """
 $(SIGNATURES)
 
-Calculate derivatives of Radau polynomials of degree p at location x
+Calculate derivatives of Radau polynomials (correction functions for nodal DG) of degree p at location x
 """
 function ∂radau(p::Integer, x::Union{Real,AV})
     Δ = ∂legendre(p, x)
@@ -42,13 +42,31 @@ end
 """
 $(SIGNATURES)
 
-Calculate derivatives of spectral difference polynomials of degree p at location x
+Calculate derivatives of spectral difference correction functions of degree p at location x
 """
 function ∂sd(p::Integer, x::Union{Real,AV})
     Δ_minus = ∂legendre(p - 1, x)
     Δ = ∂legendre(p, x)
     Δ_plus = ∂legendre(p + 1, x)
     y = (p * Δ_minus + (p + 1) * Δ_plus) / (2 * p + 1)
+
+    dgl = @. (-1.0)^p * 0.5 * (Δ - y)
+    dgr = @. 0.5 * (Δ + y)
+
+    return dgl, dgr
+end
+
+
+"""
+$(SIGNATURES)
+
+Calculate derivatives of Huynh's correction functions of degree p at location x
+"""
+function ∂huynh(p::Integer, x::Union{Real,AV})
+    Δ_minus = ∂legendre(p - 1, x)
+    Δ = ∂legendre(p, x)
+    Δ_plus = ∂legendre(p + 1, x)
+    y = ((p+1) * Δ_minus + p * Δ_plus) / (2 * p + 1)
 
     dgl = @. (-1.0)^p * 0.5 * (Δ - y)
     dgr = @. 0.5 * (Δ + y)
