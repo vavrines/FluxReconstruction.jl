@@ -1,6 +1,6 @@
 # FluxReconstruction.jl
 
-![CI](https://img.shields.io/github/workflow/status/vavrines/FluxReconstruction.jl/CI?style=flat-square)
+![CI](https://img.shields.io/github/actions/workflow/status/vavrines/FluxReconstruction.jl/ci.yml?branch=master&style=flat-square)
 [![codecov](https://img.shields.io/codecov/c/github/vavrines/FluxReconstruction.jl?style=flat-square)](https://codecov.io/gh/vavrines/FluxReconstruction.jl)
 
 **FluxReconstruction** is a lightweight [Julia](https://julialang.org) implementation of the [flux reconstruction](https://arc.aiaa.org/doi/10.2514/6.2007-4079) method proposed by Huynh.
