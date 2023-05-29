@@ -66,7 +66,7 @@ function ∂huynh(p::Integer, x::Union{Real,AV})
     Δ_minus = ∂legendre(p - 1, x)
     Δ = ∂legendre(p, x)
     Δ_plus = ∂legendre(p + 1, x)
-    y = ((p+1) * Δ_minus + p * Δ_plus) / (2 * p + 1)
+    y = ((p + 1) * Δ_minus + p * Δ_plus) / (2 * p + 1)
 
     dgl = @. (-1.0)^p * 0.5 * (Δ - y)
     dgr = @. 0.5 * (Δ + y)
