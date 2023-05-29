@@ -14,7 +14,7 @@ From the Julia REPL, you can get in the package manager (by pressing `]`) and ad
 
 ```julia
 julia> ]
-(v1.7) pkg> add FluxReconstruction
+(v1.9) pkg> add FluxReconstruction
 ```
 
 ## Physics
