@@ -16,26 +16,28 @@ function tri_quadrature(
     vertices = ([-1.0, -1 / √3], [1.0, -1 / √3], [0.0, 2 / √3]),
     transform = true,
 )
+    pushfirst!(pyimport("sys")."path", @__DIR__)
 
     py"""
-    import quadpy.t2._williams_shunn_jameson as qwsj
+    import qpmin
+    
     def create_quadrature(n):
         if n == 1:
-            scheme = qwsj.williams_shunn_jameson_1()
+            scheme = qpmin.williams_shunn_jameson_1()
         elif n == 2:
-            scheme = qwsj.williams_shunn_jameson_2()
+            scheme = qpmin.williams_shunn_jameson_2()
         elif n == 3:
-            scheme = qwsj.williams_shunn_jameson_3()
+            scheme = qpmin.williams_shunn_jameson_3()
         elif n == 4:
-            scheme = qwsj.williams_shunn_jameson_4()
+            scheme = qpmin.williams_shunn_jameson_4()
         elif n == 5:
-            scheme = qwsj.williams_shunn_jameson_5()
+            scheme = qpmin.williams_shunn_jameson_5()
         elif n == 6:
-            scheme = qwsj.williams_shunn_jameson_6()
+            scheme = qpmin.williams_shunn_jameson_6()
         elif n == 7:
-            scheme = qwsj.williams_shunn_jameson_7()
+            scheme = qpmin.williams_shunn_jameson_7()
         elif n == 8:
-            scheme = qwsj.williams_shunn_jameson_8()
+            scheme = qpmin.williams_shunn_jameson_8()
         else:
             print("Not a valid polynomial degree")
 
