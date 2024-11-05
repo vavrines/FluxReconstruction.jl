@@ -1,7 +1,7 @@
 name = "FluxReconstruction"
 uuid = "19bbc782-a6fb-447a-8120-ff40275555e1"
 authors = ["Tianbai Xiao <tianbaixiao@gmail.com>"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
