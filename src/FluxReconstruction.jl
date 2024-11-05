@@ -10,7 +10,7 @@ using NonlinearSolve
 using OrdinaryDiffEq
 using PyCall
 using KitBase
-using KitBase: AV, AM, AA, advection_flux
+using KitBase: AV, AM, AA, AbstractPhysicalSpace2D, advection_flux
 using KitBase.FastGaussQuadrature
 using KitBase.FiniteMesh.DocStringExtensions
 using KitBase.OffsetArrays
