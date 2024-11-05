@@ -13,14 +13,14 @@ Calculate quadrature points in a triangle
 """
 function tri_quadrature(
     deg;
-    vertices = ([-1.0, -1 / √3], [1.0, -1 / √3], [0.0, 2 / √3]),
-    transform = true,
+    vertices=([-1.0, -1 / √3], [1.0, -1 / √3], [0.0, 2 / √3]),
+    transform=true,
 )
     pushfirst!(pyimport("sys")."path", @__DIR__)
 
     py"""
     import qpmin
-    
+
     def create_quadrature(n):
         if n == 1:
             scheme = qpmin.williams_shunn_jameson_1()
@@ -69,7 +69,6 @@ function tri_quadrature(
 
     return points, weights
 end
-
 
 """
 $(SIGNATURES)

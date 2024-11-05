@@ -7,7 +7,7 @@ N polynomial degree -> Np solution points
 N = 2
 Np = (N + 1) * (N + 2) ÷ 2
 points, weights = tri_quadrature(N)
-scatter(points[:, 1], points[:, 2], ratio = 1)
+scatter(points[:, 1], points[:, 2]; ratio=1)
 
 """
 Vandermonde matrix bridges Lagrange polynomials and modal polynomials
@@ -18,7 +18,7 @@ Vr, Vs = ∂vandermonde_matrix(N, points[:, 1], points[:, 2]) # (r_i, ψ_j)
 
 # Lagrange polynomials
 ∂l = zeros(Np, Np, 2)
-for i = 1:Np
+for i in 1:Np
     ∂l[i, :, 1] .= V' \ Vr[i, :]
     ∂l[i, :, 2] .= V' \ Vs[i, :]
 end
@@ -58,17 +58,17 @@ end
 pf, wf = triface_quadrature(N)
 
 ψf = zeros(3, N + 1, Np)
-for i = 1:3
+for i in 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
 ∂ψf = zeros(3, N + 1, Np, 2)
-for i = 1:3
+for i in 1:3
     ∂ψf[i, :, :, 1], ∂ψf[i, :, :, 2] = ∂vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
 lf = zeros(3, N + 1, Np)
-for i = 1:3, j = 1:N+1
+for i in 1:3, j in 1:N+1
     lf[i, j, :] .= V' \ ψf[i, j, :]
 end
 
@@ -76,7 +76,7 @@ u .* lf[2, 2, :] |> sum
 uhat .* ψf[2, 2, :] |> sum
 
 ∂lf = zeros(3, N + 1, Np, 2)
-for i = 1:3, j = 1:N+1, k = 1:2
+for i in 1:3, j in 1:N+1, k in 1:2
     ∂lf[i, j, :, k] .= V' \ ∂ψf[i, j, :, k]
 end
 
@@ -87,16 +87,16 @@ u .* ∂lf[1, 2, :, 1] |> sum
 ϕ = zeros(3, N + 1)
 σ = zeros(3, N + 1, Np)
 
-for k = 1:Np
-    for j = 1:N+1
-        for i = 1:3
+for k in 1:Np
+    for j in 1:N+1
+        for i in 1:3
             σ[i, j, k] = wf[i, j] * ψf[i, j, k] * Δf[i]
         end
     end
 end
 
-for j = 1:N+1
-    for i = 1:3
+for j in 1:N+1
+    for i in 1:3
         ϕ[i, j] = sum(σ[i, j, :] .* ψf[i, j, :])
     end
 end

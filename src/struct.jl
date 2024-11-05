@@ -37,7 +37,7 @@ struct FRPSpace1D{
     iV::C
 end
 
-function FRPSpace1D(x0, x1, nx::Integer, deg::Integer, ng = 0::Integer, correction = :radau)
+function FRPSpace1D(x0, x1, nx::Integer, deg::Integer, ng=0::Integer, correction=:radau)
     ps = PSpace1D(x0, x1, nx, ng)
     J = [ps.dx[i] / 2 for i in eachindex(ps.dx)]
 
@@ -54,7 +54,7 @@ function FRPSpace1D(x0, x1, nx::Integer, deg::Integer, ng = 0::Integer, correcti
     iV = inv(V)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
     ∂lf = zeros(2, deg + 1)
-    for i = 1:2
+    for i in 1:2
         ∂lf[i, :] .= V' \ dVf[i, :]
     end
     dll = ∂lf[1, :]
@@ -84,9 +84,8 @@ function FRPSpace1D(x0, x1, nx::Integer, deg::Integer, ng = 0::Integer, correcti
     )
 end
 
-FRPSpace1D(; x0, x1, nx, deg, ng = 0, correction = :radau, kwargs...) =
+FRPSpace1D(; x0, x1, nx, deg, ng=0, correction=:radau, kwargs...) =
     FRPSpace1D(x0, x1, nx, deg, ng, correction)
-
 
 """
 $(TYPEDEF)
@@ -137,7 +136,7 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
 
     iJ = deepcopy(J)
     for i in axes(iJ, 1), j in axes(iJ, 2)
-        for k = 1:deg+1, l = 1:deg+1
+        for k in 1:deg+1, l in 1:deg+1
             iJ[i, j][k, l] .= inv(J[i, j][k, l])
         end
     end
@@ -167,7 +166,7 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
         1:deg+1,
         1:2,
     )
-    for i in axes(xpg, 1), j in axes(xpg, 2), k = 1:deg+1, l = 1:deg+1
+    for i in axes(xpg, 1), j in axes(xpg, 2), k in 1:deg+1, l in 1:deg+1
         @. xpg[i, j, k, l, :] =
             (r[k] - 1.0) * (r[l] - 1.0) / 4 * base.vertices[i, j, 1, :] +
             (r[k] + 1.0) * (1.0 - r[l]) / 4 * base.vertices[i, j, 2, :] +
@@ -177,7 +176,7 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
 
     # quadrature weights
     w = gausslegendre(deg + 1)[2] .|> eltype(base.x)
-    wp = [w[i] * w[j] for i = 1:deg+1, j = 1:deg+1]
+    wp = [w[i] * w[j] for i in 1:deg+1, j in 1:deg+1]
 
     # Lagrange polynomials
     ll, lr, lpdm = standard_lagrange(r)
@@ -185,7 +184,7 @@ function FRPSpace2D(base::AbstractPhysicalSpace2D, deg::Integer)
     V = vandermonde_matrix(deg, r)
     dVf = ∂vandermonde_matrix(deg, [-1.0, 1.0])
     ∂lf = zeros(eltype(base.x), 2, deg + 1)
-    for i = 1:2
+    for i in 1:2
         ∂lf[i, :] .= V' \ dVf[i, :]
     end
     dll = ∂lf[1, :]
@@ -235,16 +234,15 @@ function FRPSpace2D(
     y1::Real,
     ny::Integer,
     deg::Integer,
-    ngx = 0::Integer,
-    ngy = 0::Integer,
+    ngx=0::Integer,
+    ngy=0::Integer,
 )
     ps = PSpace2D(x0, x1, nx, y0, y1, ny, ngx, ngy)
     return FRPSpace2D(ps, deg)
 end
 
-FRPSpace2D(; x0, x1, nx, y0, y1, ny, deg, ngx = 0, ngy = 0, kwargs...) =
+FRPSpace2D(; x0, x1, nx, y0, y1, ny, deg, ngx=0, ngy=0, kwargs...) =
     FRPSpace2D(x0, x1, nx, y0, y1, ny, deg, ngx, ngy)
-
 
 """
 $(TYPEDEF)
@@ -317,19 +315,19 @@ function TriFRPSpace(file::T, deg::Integer) where {T<:AbstractString}
 
     xfl, wf = triface_quadrature(deg)
     ψf = zeros(3, deg + 1, np)
-    for i = 1:3
+    for i in 1:3
         ψf[i, :, :] .= vandermonde_matrix(Tri, deg, xfl[i, :, 1], xfl[i, :, 2])
     end
 
     lf = zeros(3, deg + 1, np)
-    for i = 1:3, j = 1:deg+1
+    for i in 1:3, j in 1:deg+1
         lf[i, j, :] .= V' \ ψf[i, j, :]
     end
 
     xpg = global_sp(ps.points, ps.cellid, deg)
     xfg = global_fp(ps.points, ps.cellid, deg)
     ncell = size(ps.cellid, 1)
-    fpn = [neighbor_fpidx([i, j, k], ps, xfg) for i = 1:ncell, j = 1:3, k = 1:deg+1]
+    fpn = [neighbor_fpidx([i, j, k], ps, xfg) for i in 1:ncell, j in 1:3, k in 1:deg+1]
 
     return UnstructFRPSpace(
         ps,

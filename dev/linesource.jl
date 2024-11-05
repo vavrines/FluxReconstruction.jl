@@ -47,12 +47,12 @@ Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2])
 
 pf, wf = triface_quadrature(N)
 ψf = zeros(3, N + 1, Np)
-for i = 1:3
+for i in 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
 lf = zeros(3, N + 1, Np)
-for i = 1:3, j = 1:N+1
+for i in 1:3, j in 1:N+1
     lf[i, j, :] .= V' \ ψf[i, j, :]
 end
 
@@ -62,7 +62,7 @@ for i in axes(u, 1), j in axes(u, 2)
 end
 
 cell_normal = zeros(ncell, 3, 2)
-for i = 1:ncell
+for i in 1:ncell
     pids = ps.cellid[i, :]
 
     cell_normal[i, 1, :] .= unit_normal(ps.points[pids[1], :], ps.points[pids[2], :])
@@ -76,7 +76,7 @@ for i = 1:ncell
             ps.points[pids[3], :] .+ ps.points[pids[1], :],
         ] / 2
 
-    for j = 1:3
+    for j in 1:3
         if dot(cell_normal[i, j, :], p[j][1:2] - ps.cellCenter[i, 1:2]) < 0
             cell_normal[i, j, :] .= -cell_normal[i, j, :]
         end
@@ -105,7 +105,7 @@ function dudt!(du, u, p, t)
 
     u_face = zeros(ncell, 3, deg + 1, nq)
     f_face = zeros(ncell, 3, deg + 1, nq, 2)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:nq
+    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:nq
         u_face[i, j, k, l] = sum(u[i, :, l] .* lf[j, k, :])
         f_face[i, j, k, l, 1] = sum(f[i, :, l, 1] .* lf[j, k, :])
         f_face[i, j, k, l, 2] = sum(f[i, :, l, 2] .* lf[j, k, :])
@@ -114,16 +114,16 @@ function dudt!(du, u, p, t)
     n = [[0.0, -1.0], [1 / √2, 1 / √2], [-1.0, 0.0]]
 
     fn_face = zeros(ncell, 3, deg + 1, nq)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:nq
+    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:nq
         fn_face[i, j, k, l] = sum(f_face[i, j, k, l, :] .* n[j])
     end
 
     fn_interaction = zeros(ncell, 3, deg + 1, nq)
-    for i = 1:ncell
-        for j = 1:3, k = 1:deg+1
+    for i in 1:ncell
+        for j in 1:3, k in 1:deg+1
             ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
             if ni > 0
-                for l = 1:nq
+                for l in 1:nq
                     uL = u_face[i, j, k, l]
                     uR = u_face[ni, nj, nk, l]
 
@@ -141,15 +141,15 @@ function dudt!(du, u, p, t)
     end
 
     rhs1 = zeros(ncell, nsp, nq)
-    for i in axes(rhs1, 1), j in axes(rhs1, 2), k = 1:nq
+    for i in axes(rhs1, 1), j in axes(rhs1, 2), k in 1:nq
         rhs1[i, j, nq] =
             -sum(f[i, :, nq, 1] .* ∂l[j, :, 1]) - sum(f[i, :, nq, 2] .* ∂l[j, :, 2])
     end
 
     rhs2 = zero(rhs1)
-    for i = 1:ncell, k = 1:nq
+    for i in 1:ncell, k in 1:nq
         if ps.cellType[i] != 1
-            for j = 1:nsp
+            for j in 1:nsp
                 rhs2[i, j, k] =
                     -sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
             end
@@ -157,7 +157,7 @@ function dudt!(du, u, p, t)
     end
 
     #du .= rhs1 .+ rhs2
-    for i = 1:ncell
+    for i in 1:ncell
         if ps.cellType[i] == 0
             du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
         end
@@ -171,22 +171,17 @@ p = N
 prob = ODEProblem(dudt!, u, tspan, p)
 
 dt = 0.01
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 
-@showprogress for iter = 1:10
+@showprogress for iter in 1:10
     step!(itg)
 end
-
 
 sol = zeros(ncell)
 for i in eachindex(sol)
     sol[i] = (vs.weights .* itg.u[i, 2, :]) |> sum
 end
 write_vtk(ps.points, ps.cellid, sol)
-
-
-
-
 
 du = zero(u)
 dudt!(du, u, p, 0.0)

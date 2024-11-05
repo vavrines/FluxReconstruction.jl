@@ -24,12 +24,12 @@ Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2])
 
 pf, wf = triface_quadrature(N)
 ψf = zeros(3, N + 1, Np)
-for i = 1:3
+for i in 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
 lf = zeros(3, N + 1, Np)
-for i = 1:3, j = 1:N+1
+for i in 1:3, j in 1:N+1
     lf[i, j, :] .= V' \ ψf[i, j, :]
 end
 
@@ -47,7 +47,7 @@ for i in axes(u0, 1), j in axes(u0, 2)
 end
 
 cell_normal = zeros(ncell, 3, 2)
-for i = 1:ncell
+for i in 1:ncell
     pids = ps.cellid[i, :]
 
     cell_normal[i, 1, :] .= unit_normal(ps.points[pids[1], :], ps.points[pids[2], :])
@@ -61,7 +61,7 @@ for i = 1:ncell
             ps.points[pids[3], :] .+ ps.points[pids[1], :],
         ] / 2
 
-    for j = 1:3
+    for j in 1:3
         if dot(cell_normal[i, j, :], p[j][1:2] - ps.cellCenter[i, 1:2]) < 0
             cell_normal[i, j, :] .= -cell_normal[i, j, :]
         end
@@ -87,7 +87,7 @@ function dudt!(du, u, p, t)
 
     u_face = zeros(ncell, 3, deg + 1, 4)
     f_face = zeros(ncell, 3, deg + 1, 4, 2)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:4
+    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:4
         u_face[i, j, k, l] = sum(u[i, :, l] .* lf[j, k, :])
         f_face[i, j, k, l, 1] = sum(f[i, :, l, 1] .* lf[j, k, :])
         f_face[i, j, k, l, 2] = sum(f[i, :, l, 2] .* lf[j, k, :])
@@ -96,12 +96,12 @@ function dudt!(du, u, p, t)
     n = [[0.0, -1.0], [1 / √2, 1 / √2], [-1.0, 0.0]]
 
     fn_face = zeros(ncell, 3, deg + 1, 4)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1, l = 1:4
+    for i in 1:ncell, j in 1:3, k in 1:deg+1, l in 1:4
         fn_face[i, j, k, l] = dot(f_face[i, j, k, l, :], n[j])
     end
 
     fn_interaction = zeros(ncell, 3, deg + 1, 4)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1
+    for i in 1:ncell, j in 1:3, k in 1:deg+1
         uL = local_frame(u_face[i, j, k, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
 
         ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
@@ -119,16 +119,16 @@ function dudt!(du, u, p, t)
         fwn_global = global_frame(fwn_local, cell_normal[i, j, 1], cell_normal[i, j, 2])
 
         fwn_xy = zeros(4, 2)
-        for idx = 1:4
+        for idx in 1:4
             fwn_xy[idx, :] .= fwn_global[idx] .* cell_normal[i, j, :]
         end
 
         fws_rs = zeros(4, 2)
-        for idx = 1:4
+        for idx in 1:4
             fws_rs[idx, :] .= inv(J[i]) * fwn_xy[idx, :]
         end
 
-        fwns = [sum(fws_rs[idx, :] .* n[j]) for idx = 1:4]
+        fwns = [sum(fws_rs[idx, :] .* n[j]) for idx in 1:4]
         #fwns = [sum(fws_rs[idx, :]) for idx in 1:4]
 
         fn_interaction[i, j, k, :] .= fwns
@@ -164,7 +164,6 @@ function dudt!(du, u, p, t)
 
             fn_interaction[i, j, k, :] .= fwns
         end=#
-
 
     #=
         for i = 1:ncell, j = 1:3, k = 1:deg+1
@@ -211,9 +210,8 @@ function dudt!(du, u, p, t)
             end
         end=#
 
-
     rhs1 = zeros(ncell, nsp, 4)
-    for i in axes(rhs1, 1), j in axes(rhs1, 2), k = 1:4
+    for i in axes(rhs1, 1), j in axes(rhs1, 2), k in 1:4
         if ps.cellType[i] == 0
             rhs1[i, j, k] =
                 -sum(f[i, :, k, 1] .* ∂l[j, :, 1]) - sum(f[i, :, k, 2] .* ∂l[j, :, 2])
@@ -221,9 +219,9 @@ function dudt!(du, u, p, t)
     end
 
     rhs2 = zero(rhs1)
-    for i = 1:ncell
+    for i in 1:ncell
         if ps.cellType[i] == 0
-            for j = 1:nsp, k = 1:4
+            for j in 1:nsp, k in 1:4
                 rhs2[i, j, k] =
                     -sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
                 #rhs2[i, j, k] = - sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k])) / 3
@@ -231,7 +229,7 @@ function dudt!(du, u, p, t)
         end
     end
 
-    for i = 1:ncell
+    for i in 1:ncell
         if ps.cellType[i] == 0
             du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
             #du[i, :, :] .= rhs2[i, :, :]
@@ -245,9 +243,9 @@ tspan = (0.0, 0.1)
 p = (N, 5 / 3)
 prob = ODEProblem(dudt!, u0, tspan, p)
 dt = 0.002
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 
-@showprogress for iter = 1:20
+@showprogress for iter in 1:20
     step!(itg)
 end
 
@@ -260,8 +258,6 @@ begin
     write_vtk(ps.points, ps.cellid, prim[:, 2, :])
 end
 
-
-
 du = zero(u0)
 f1, f2 = dudt!(du, u0, p, 1.0)
 
@@ -272,4 +268,4 @@ f1[idx, 2, 2, :]
 f2[idx, 2, 2, :]
 
 fw = zeros(4)
-flux_roe!(fw, [1.0, 0.0, 0.0, 1.0], []fw::X, wL::Y, wR::Y, γ, dt, n = [1.0, 0.0])
+flux_roe!(fw, [1.0, 0.0, 0.0, 1.0], []fw::X, wL::Y, wR::Y, γ, dt; n=[1.0, 0.0])

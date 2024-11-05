@@ -116,8 +116,8 @@ function advection_dflux!(f, u, a, J)
     strx = blockDim().x * gridDim().x
     stry = blockDim().y * gridDim().y
 
-    for j = idy:stry:size(u, 2)
-        for i = idx:strx:size(u, 1)
+    for j in idy:stry:size(u, 2)
+        for i in idx:strx:size(u, 1)
             @inbounds f[i, j] = advection_flux(u[i, j], a) / J[i]
         end
     end
@@ -126,13 +126,11 @@ function advection_dflux!(f, u, a, J)
 end
 
 function advection_iflux!(f_interaction::Array, f_face, u_face)
-    @inbounds @threads for i = 2:length(f_interaction)-1
+    @inbounds @threads for i in 2:length(f_interaction)-1
         au = (f_face[i, 1] - f_face[i-1, 2]) / (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
 
-        f_interaction[i] = (
-            0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
-            0.5 * abs(au) * (u_face[i, 1] - u_face[i-1, 2])
-        )
+        f_interaction[i] = (0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
+         0.5 * abs(au) * (u_face[i, 1] - u_face[i-1, 2]))
     end
 
     return nothing
@@ -142,13 +140,11 @@ function advection_iflux!(f_interaction, f_face, u_face)
     idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     strx = blockDim().x * gridDim().x
 
-    @inbounds for i = idx+1:strx:length(f_interaction)-1
+    @inbounds for i in idx+1:strx:length(f_interaction)-1
         au = (f_face[i, 1] - f_face[i-1, 2]) / (u_face[i, 1] - u_face[i-1, 2] + 1e-8)
 
-        f_interaction[i] = (
-            0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
-            0.5 * abs(au) * (u_face[i, 1] - u_face[i-1, 2])
-        )
+        f_interaction[i] = (0.5 * (f_face[i, 1] + f_face[i-1, 2]) -
+         0.5 * abs(au) * (u_face[i, 1] - u_face[i-1, 2]))
     end
 
     return nothing
@@ -156,7 +152,7 @@ end
 
 function dirichlet_advection!(du::AbstractMatrix, u, p)
     du[1, :] .= 0.0
-    du[end, :] .= 0.0
+    return du[end, :] .= 0.0
 end
 
 function period_advection!(du::AbstractMatrix, u, p)
@@ -165,19 +161,15 @@ function period_advection!(du::AbstractMatrix, u, p)
     ncell, nsp = size(u)
 
     au = (f_face[1, 1] - f_face[ncell, 2]) / (u_face[1, 1] - u_face[ncell, 2] + 1e-6)
-    f_interaction[1] = (
-        0.5 * (f_face[ncell, 2] + f_face[1, 1]) -
-        0.5 * abs(au) * (u_face[1, 1] - u_face[ncell, 2])
-    )
+    f_interaction[1] = (0.5 * (f_face[ncell, 2] + f_face[1, 1]) -
+     0.5 * abs(au) * (u_face[1, 1] - u_face[ncell, 2]))
     f_interaction[end] = f_interaction[1]
 
-    for ppp1 = 1:nsp
+    for ppp1 in 1:nsp
         for i in [1, ncell]
-            @inbounds du[i, ppp1] = -(
-                rhs1[i, ppp1] +
-                (f_interaction[i] - f_face[i, 1]) * dgl[ppp1] +
-                (f_interaction[i+1] - f_face[i, 2]) * dgr[ppp1]
-            )
+            @inbounds du[i, ppp1] = -(rhs1[i, ppp1] +
+              (f_interaction[i] - f_face[i, 1]) * dgl[ppp1] +
+              (f_interaction[i+1] - f_face[i, 2]) * dgr[ppp1])
         end
     end
 end

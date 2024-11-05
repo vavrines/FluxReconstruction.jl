@@ -20,16 +20,16 @@ using Base.Threads: @threads
 cd(@__DIR__)
 pyplot()
 
-set = Setup(
-    case = "dev",
-    space = "2d0f",
-    flux = "hll",
-    collision = "nothing",
-    interpOrder = 2,
-    limiter = "positivity",
-    boundary = "euler",
-    cfl = 0.1,
-    maxTime = 1.0,
+set = Setup(;
+    case="dev",
+    space="2d0f",
+    flux="hll",
+    collision="nothing",
+    interpOrder=2,
+    limiter="positivity",
+    boundary="euler",
+    cfl=0.1,
+    maxTime=1.0,
 )
 
 begin
@@ -60,7 +60,7 @@ begin
     y = similar(x)
     dx = similar(x)
     dy = similar(y)
-    for i = 0:nx+1, j = 0:ny+1
+    for i in 0:nx+1, j in 0:ny+1
         x[i, j] = (vertices[i, j, 1, 1] + vertices[i, j, 4, 1]) / 2 + Δx / 2
         y[i, j] = vertices[i, j, 1, 2] + 0.5 * Δy
         dx[i, j] = Δx
@@ -73,7 +73,7 @@ begin
 end
 
 vs = nothing
-gas = Gas(Kn = 1e-6, Ma = 0.0, K = 1.0)
+gas = Gas(; Kn=1e-6, Ma=0.0, K=1.0)
 ib = nothing
 ks = SolverSet(set, ps0, vs, gas, ib)
 
@@ -86,9 +86,9 @@ function dudt!(du, u, p, t)
 
     f = OffsetArray{Float64}(undef, 0:nx+1, 0:ny+1, nsp, nsp, 4, 2)
     @inbounds @threads for i in axes(f, 1)
-        for j in axes(f, 2), k = 1:nsp, l = 1:nsp
+        for j in axes(f, 2), k in 1:nsp, l in 1:nsp
             fg, gg = euler_flux(u[i, j, k, l, :], γ)
-            for m = 1:4
+            for m in 1:4
                 f[i, j, k, l, m, :] .= iJ[i, j][k, l] * [fg[m], gg[m]]
             end
         end
@@ -97,13 +97,13 @@ function dudt!(du, u, p, t)
     u_face = OffsetArray{Float64}(undef, 0:nx+1, 0:ny+1, 4, nsp, 4)
     f_face = OffsetArray{Float64}(undef, 0:nx+1, 0:ny+1, 4, nsp, 4, 2)
     @inbounds @threads for i in axes(u_face, 1)
-        for j in axes(u_face, 2), l = 1:nsp, m = 1:4
+        for j in axes(u_face, 2), l in 1:nsp, m in 1:4
             u_face[i, j, 1, l, m] = dot(u[i, j, l, :, m], ll)
             u_face[i, j, 2, l, m] = dot(u[i, j, :, l, m], lr)
             u_face[i, j, 3, l, m] = dot(u[i, j, l, :, m], lr)
             u_face[i, j, 4, l, m] = dot(u[i, j, :, l, m], ll)
 
-            for n = 1:2
+            for n in 1:2
                 f_face[i, j, 1, l, m, n] = dot(f[i, j, l, :, m, n], ll)
                 f_face[i, j, 2, l, m, n] = dot(f[i, j, :, l, m, n], lr)
                 f_face[i, j, 3, l, m, n] = dot(f[i, j, l, :, m, n], lr)
@@ -113,8 +113,8 @@ function dudt!(du, u, p, t)
     end
 
     fx_interaction = zeros(nx + 1, ny, nsp, 4)
-    @inbounds @threads for i = 1:nx+1
-        for j = 1:ny, k = 1:nsp
+    @inbounds @threads for i in 1:nx+1
+        for j in 1:ny, k in 1:nsp
             fw = @view fx_interaction[i, j, k, :]
             uL = local_frame(u_face[i-1, j, 2, k, :], n1[i, j][1], n1[i, j][2])
             uR = local_frame(u_face[i, j, 4, k, :], n1[i, j][1], n1[i, j][2])
@@ -123,8 +123,8 @@ function dudt!(du, u, p, t)
         end
     end
     fy_interaction = zeros(nx, ny + 1, nsp, 4)
-    @inbounds @threads for i = 1:nx
-        for j = 1:ny+1, k = 1:nsp
+    @inbounds @threads for i in 1:nx
+        for j in 1:ny+1, k in 1:nsp
             fw = @view fy_interaction[i, j, k, :]
             uL = local_frame(u_face[i, j-1, 3, k, :], n2[i, j][1], n2[i, j][2])
             uR = local_frame(u_face[i, j, 1, k, :], n2[i, j][1], n2[i, j][2])
@@ -134,32 +134,30 @@ function dudt!(du, u, p, t)
     end
 
     rhs1 = zeros(nx, ny, nsp, nsp, 4)
-    @inbounds @threads for i = 1:nx
-        for j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
+    @inbounds @threads for i in 1:nx
+        for j in 1:ny, k in 1:nsp, l in 1:nsp, m in 1:4
             rhs1[i, j, k, l, m] = dot(f[i, j, :, l, m, 1], lpdm[k, :])
         end
     end
     rhs2 = zeros(nx, ny, nsp, nsp, 4)
-    @inbounds @threads for i = 1:nx
-        for j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
+    @inbounds @threads for i in 1:nx
+        for j in 1:ny, k in 1:nsp, l in 1:nsp, m in 1:4
             rhs2[i, j, k, l, m] = dot(f[i, j, k, :, m, 2], lpdm[l, :])
         end
     end
 
-    @inbounds @threads for i = 1:nx
-        for j = 1:ny, k = 1:nsp, l = 1:nsp, m = 1:4
+    @inbounds @threads for i in 1:nx
+        for j in 1:ny, k in 1:nsp, l in 1:nsp, m in 1:4
             fxL = (iJ[i, j][k, l]*n1[i, j])[1] * fx_interaction[i, j, l, m]
             fxR = (iJ[i, j][k, l]*n1[i+1, j])[1] * fx_interaction[i+1, j, l, m]
             fyL = (iJ[i, j][k, l]*n2[i, j])[2] * fy_interaction[i, j, l, m]
             fyR = (iJ[i, j][k, l]*n2[i, j+1])[2] * fy_interaction[i, j+1, l, m]
-            du[i, j, k, l, m] = -(
-                rhs1[i, j, k, l, m] +
-                rhs2[i, j, k, l, m] +
-                (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
-                (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
-                (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
-                (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l]
-            )
+            du[i, j, k, l, m] = -(rhs1[i, j, k, l, m] +
+              rhs2[i, j, k, l, m] +
+              (fxL - f_face[i, j, 4, l, m, 1]) * dhl[k] +
+              (fxR - f_face[i, j, 2, l, m, 1]) * dhr[k] +
+              (fyL - f_face[i, j, 1, k, m, 2]) * dhl[l] +
+              (fyR - f_face[i, j, 3, k, m, 2]) * dhr[l])
         end
     end
 
@@ -174,14 +172,14 @@ begin
         u0[i, j, k, l, :] .= prim_conserve(prim, ks.gas.γ)
     end
 
-    n1 = [[0.0, 0.0] for i = 1:ps.nx+1, j = 1:ps.ny]
-    for i = 1:ps.nx+1, j = 1:ps.ny
+    n1 = [[0.0, 0.0] for i in 1:ps.nx+1, j in 1:ps.ny]
+    for i in 1:ps.nx+1, j in 1:ps.ny
         angle = -π / 4
         n1[i, j] .= [cos(angle), sin(angle)]
     end
 
-    n2 = [[0.0, 0.0] for i = 1:ps.nx, j = 1:ps.ny+1]
-    for i = 1:ps.nx, j = 1:ps.ny+1
+    n2 = [[0.0, 0.0] for i in 1:ps.nx, j in 1:ps.ny+1]
+    for i in 1:ps.nx, j in 1:ps.ny+1
         n2[i, j] .= [0.0, 1.0]
     end
 end
@@ -192,14 +190,14 @@ prob = ODEProblem(dudt!, u0, tspan, p)
 
 dt = 0.001
 nt = tspan[2] ÷ dt |> Int
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 sol0 = zeros(ps.nx, ps.ny, 4)
-for i = 1:ps.nx, j = 1:ps.ny
+for i in 1:ps.nx, j in 1:ps.ny
     sol0[i, j, :] .= conserve_prim(itg.u[i, j, 2, 2, :], ks.gas.γ)
     sol0[i, j, 4] = 1 / sol0[i, j, 4]
 end
 
-@showprogress for iter = 1:nt÷2
+@showprogress for iter in 1:nt÷2
     # bcs
     itg.u[0, :, :, :, :] .= itg.u[ps.nx, :, :, :, :]
     itg.u[ps.nx+1, :, :, :, :] .= itg.u[1, :, :, :, :]
@@ -211,7 +209,7 @@ end
 
 begin
     sol = zeros(ps.nx, ps.ny, 4)
-    for i = 1:ps.nx, j = 1:ps.ny
+    for i in 1:ps.nx, j in 1:ps.ny
         sol[i, j, :] .= conserve_prim(itg.u[i, j, 2, 2, :], ks.gas.γ)
         sol[i, j, 4] = 1 / sol[i, j, 4]
     end

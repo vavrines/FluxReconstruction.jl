@@ -4,20 +4,20 @@ using KitBase.ProgressMeter: @showprogress
 using Base.Threads: @threads
 
 begin
-    set = Setup(
-        case = "shockvortex",
-        space = "2d0f0v",
-        flux = "hll",
-        collision = "nothing",
-        interpOrder = 3,
-        limiter = "positivity",
-        boundary = "fix",
-        cfl = 0.1,
-        maxTime = 1.0,
+    set = Setup(;
+        case="shockvortex",
+        space="2d0f0v",
+        flux="hll",
+        collision="nothing",
+        interpOrder=3,
+        limiter="positivity",
+        boundary="fix",
+        cfl=0.1,
+        maxTime=1.0,
     )
     ps = FRPSpace2D(0.0, 2.0, 100, 0.0, 1.0, 50, set.interpOrder - 1, 1, 1)
     vs = nothing
-    gas = Gas(Kn = 1e-6, Ma = 1.12, K = 1.0)
+    gas = Gas(; Kn=1e-6, Ma=1.12, K=1.0)
     ib = nothing
 
     ks = SolverSet(set, ps, vs, gas, ib)
@@ -45,23 +45,23 @@ function dudt!(du, u, p, t)
     ny = size(u, 2) - 2
     nsp = size(u, 3)
 
-    @inbounds @threads for l = 1:nsp
-        for k = 1:nsp, j in axes(f, 2), i in axes(f, 1)
+    @inbounds @threads for l in 1:nsp
+        for k in 1:nsp, j in axes(f, 2), i in axes(f, 1)
             fg, gg = euler_flux(u[i, j, k, l, :], γ)
-            for s = 1:4
+            for s in 1:4
                 f[i, j, k, l, s, :] .= iJ[i, j][k, l] * [fg[s], gg[s]]
             end
         end
     end
 
-    @inbounds @threads for m = 1:4
-        for l = 1:nsp, j in axes(u_face, 2), i in axes(u_face, 1)
+    @inbounds @threads for m in 1:4
+        for l in 1:nsp, j in axes(u_face, 2), i in axes(u_face, 1)
             u_face[i, j, 1, l, m] = dot(u[i, j, l, :, m], ll)
             u_face[i, j, 2, l, m] = dot(u[i, j, :, l, m], lr)
             u_face[i, j, 3, l, m] = dot(u[i, j, l, :, m], lr)
             u_face[i, j, 4, l, m] = dot(u[i, j, :, l, m], ll)
 
-            for n = 1:2
+            for n in 1:2
                 f_face[i, j, 1, l, m, n] = dot(f[i, j, l, :, m, n], ll)
                 f_face[i, j, 2, l, m, n] = dot(f[i, j, :, l, m, n], lr)
                 f_face[i, j, 3, l, m, n] = dot(f[i, j, l, :, m, n], lr)
@@ -70,16 +70,16 @@ function dudt!(du, u, p, t)
         end
     end
 
-    @inbounds @threads for k = 1:nsp
-        for j = 1:ny, i = 1:nx+1
+    @inbounds @threads for k in 1:nsp
+        for j in 1:ny, i in 1:nx+1
             fw = @view fx_interaction[i, j, k, :]
             uL = @view u_face[i-1, j, 2, k, :]
             uR = @view u_face[i, j, 4, k, :]
             flux_hll!(fw, uL, uR, γ, 1.0)
         end
     end
-    @inbounds @threads for k = 1:nsp
-        for j = 1:ny+1, i = 1:nx
+    @inbounds @threads for k in 1:nsp
+        for j in 1:ny+1, i in 1:nx
             fw = @view fy_interaction[i, j, k, :]
             uL = local_frame(u_face[i, j-1, 3, k, :], 0.0, 1.0)
             uR = local_frame(u_face[i, j, 1, k, :], 0.0, 1.0)
@@ -88,39 +88,29 @@ function dudt!(du, u, p, t)
         end
     end
 
-    @inbounds @threads for m = 1:4
-        for l = 1:nsp, k = 1:nsp, j = 1:ny, i = 1:nx
+    @inbounds @threads for m in 1:4
+        for l in 1:nsp, k in 1:nsp, j in 1:ny, i in 1:nx
             rhs1[i, j, k, l, m] = dot(f[i, j, :, l, m, 1], lpdm[k, :])
         end
     end
-    @inbounds @threads for m = 1:4
-        for l = 1:nsp, k = 1:nsp, j = 1:ny, i = 1:nx
+    @inbounds @threads for m in 1:4
+        for l in 1:nsp, k in 1:nsp, j in 1:ny, i in 1:nx
             rhs2[i, j, k, l, m] = dot(f[i, j, k, :, m, 2], lpdm[l, :])
         end
     end
 
-    @inbounds @threads for m = 1:4
-        for l = 1:nsp, k = 1:nsp, j = 1:ny, i = 1:nx
-            du[i, j, k, l, m] = -(
-                rhs1[i, j, k, l, m] +
-                rhs2[i, j, k, l, m] +
-                (
-                    fx_interaction[i, j, l, m] * iJ[i, j][k, l][1, 1] -
-                    f_face[i, j, 4, l, m, 1]
-                ) * dhl[k] +
-                (
-                    fx_interaction[i+1, j, l, m] * iJ[i, j][k, l][1, 1] -
-                    f_face[i, j, 2, l, m, 1]
-                ) * dhr[k] +
-                (
-                    fy_interaction[i, j, k, m] * iJ[i, j][k, l][2, 2] -
-                    f_face[i, j, 1, k, m, 2]
-                ) * dhl[l] +
-                (
-                    fy_interaction[i, j+1, k, m] * iJ[i, j][k, l][2, 2] -
-                    f_face[i, j, 3, k, m, 2]
-                ) * dhr[l]
-            )
+    @inbounds @threads for m in 1:4
+        for l in 1:nsp, k in 1:nsp, j in 1:ny, i in 1:nx
+            du[i, j, k, l, m] = -(rhs1[i, j, k, l, m] +
+              rhs2[i, j, k, l, m] +
+              (fx_interaction[i, j, l, m] * iJ[i, j][k, l][1, 1] -
+               f_face[i, j, 4, l, m, 1]) * dhl[k] +
+              (fx_interaction[i+1, j, l, m] * iJ[i, j][k, l][1, 1] -
+               f_face[i, j, 2, l, m, 1]) * dhr[k] +
+              (fy_interaction[i, j, k, m] * iJ[i, j][k, l][2, 2] -
+               f_face[i, j, 1, k, m, 2]) * dhl[l] +
+              (fy_interaction[i, j+1, k, m] * iJ[i, j][k, l][2, 2] -
+               f_face[i, j, 3, k, m, 2]) * dhr[l])
         end
     end
 
@@ -301,12 +291,12 @@ end
 end=#
 
 prob = ODEProblem(dudt!, u0, tspan, p)
-itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Midpoint(); save_everystep=false, adaptive=false, dt=dt)
 
-@showprogress for iter = 1:100#nt
+@showprogress for iter in 1:100#nt
     # limiter
-    @inbounds @threads for j = 1:ps.ny
-        for i = 1:ps.nx
+    @inbounds @threads for j in 1:ps.ny
+        for i in 1:ps.nx
             ũ = @view itg.u[i, j, :, :, :]
             positive_limiter(ũ, ks.gas.γ, ps.wp ./ 4, ps.ll, ps.lr)
         end
@@ -321,9 +311,9 @@ itg = init(prob, Midpoint(), save_everystep = false, adaptive = false, dt = dt)
         isShock = shock_detector(log10(su), ps.deg, -3.0 * log10(ps.deg), 9)
 
         if isShock
-            for s = 1:4
+            for s in 1:4
                 û = ps.iV * itg.u[i, j, 1:3, 1:3, s][:]
-                FR.modal_filter!(û, 5e-4; filter = :l2)
+                FR.modal_filter!(û, 5e-4; filter=:l2)
                 uNode = reshape(ps.V * û, 3, 3)
                 itg.u[i, j, :, :, s] .= uNode
             end
@@ -345,11 +335,11 @@ begin
     y = zeros(ps.nx * (ps.deg + 1), ps.ny * (ps.deg + 1))
     sol = zeros(ps.nx * (ps.deg + 1), ps.ny * (ps.deg + 1), 4)
 
-    for i = 1:ps.nx, j = 1:ps.ny
+    for i in 1:ps.nx, j in 1:ps.ny
         idx0 = (i - 1) * (ps.deg + 1)
         idy0 = (j - 1) * (ps.deg + 1)
 
-        for k = 1:ps.deg+1, l = 1:ps.deg+1
+        for k in 1:ps.deg+1, l in 1:ps.deg+1
             idx = idx0 + k
             idy = idy0 + l
             x[idx, idy] = ps.xpg[i, j, k, l, 1]
@@ -361,5 +351,5 @@ begin
     end
 end
 
-contourf(x[:, 1], y[1, :], sol[:, :, 1]', aspect_ratio = 1, legend = true)
+contourf(x[:, 1], y[1, :], sol[:, :, 1]'; aspect_ratio=1, legend=true)
 plot(x[:, 1], sol[:, end÷2+1, 1])

@@ -36,7 +36,7 @@ end
 
 u = zeros(nx, nsp)
 f = zeros(nx, nu, nsp)
-for i = 1:nx, ppp1 = 1:nsp
+for i in 1:nx, ppp1 in 1:nsp
     #u[i, ppp1] = exp(-20.0 * pspace.xp[i, ppp1]^2)
     u[i, ppp1] = 1.0 - sin(π * pspace.xp[i, ppp1])
     prim = conserve_prim(u[i, ppp1], a)
@@ -44,7 +44,7 @@ for i = 1:nx, ppp1 = 1:nsp
 end
 
 e2f = zeros(Int, nx, 2)
-for i = 1:nx
+for i in 1:nx
     if i == 1
         e2f[i, 2] = nface
         e2f[i, 1] = i + 1
@@ -57,7 +57,7 @@ for i = 1:nx
     end
 end
 f2e = zeros(Int, nface, 2)
-for i = 1:nface
+for i in 1:nface
     if i == 1
         f2e[i, 1] = i
         f2e[i, 2] = nx
@@ -79,7 +79,7 @@ function mol!(du, u, p, t) # method of lines
 
     ρ = similar(u, ncell, nsp)
     M = similar(u, ncell, nu, nsp)
-    for i = 1:ncell, k = 1:nsp
+    for i in 1:ncell, k in 1:nsp
         #ρ[i, k] = discrete_moments(u[i, :, k], weights)
         ρ[i, k] = sum(u[i, :, k] .* weights)
         #prim = conserve_prim(ρ[i, k], a)
@@ -90,14 +90,14 @@ function mol!(du, u, p, t) # method of lines
     τ = 2.0 * 0.001
 
     f = similar(u)
-    for i = 1:ncell, j = 1:nu, k = 1:nsp
+    for i in 1:ncell, j in 1:nu, k in 1:nsp
         J = 0.5 * dx[i]
         f[i, j, k] = velo[j] * u[i, j, k] / J
     end
 
     u_face = zeros(eltype(u), ncell, nu, 2)
     f_face = zeros(eltype(u), ncell, nu, 2)
-    for i = 1:ncell, j = 1:nu, k = 1:nsp
+    for i in 1:ncell, j in 1:nu, k in 1:nsp
         # right face of element i
         u_face[i, j, 1] += u[i, j, k] * lr[k]
         f_face[i, j, 1] += f[i, j, k] * lr[k]
@@ -108,23 +108,22 @@ function mol!(du, u, p, t) # method of lines
     end
 
     f_interaction = similar(u, nface, nu)
-    for i = 1:nface
+    for i in 1:nface
         @. f_interaction[i, :] =
             f_face[f2e[i, 1], :, 2] * (1.0 - δ) + f_face[f2e[i, 2], :, 1] * (δ)
     end
 
     rhs1 = zeros(eltype(u), ncell, nu, nsp)
-    for i = 1:ncell, j = 1:nu, ppp1 = 1:nsp, k = 1:nsp
+    for i in 1:ncell, j in 1:nu, ppp1 in 1:nsp, k in 1:nsp
         rhs1[i, j, ppp1] += f[i, j, k] * lpdm[ppp1, k]
     end
 
-    for i = 1:ncell, j = 1:nu, ppp1 = 1:nsp
+    for i in 1:ncell, j in 1:nu, ppp1 in 1:nsp
         du[i, j, ppp1] =
-            -(
-                rhs1[i, j, ppp1] +
-                (f_interaction[e2f[i, 2], j] - f_face[i, j, 2]) * dgl[ppp1] +
-                (f_interaction[e2f[i, 1], j] - f_face[i, j, 1]) * dgr[ppp1]
-            ) + (M[i, j, ppp1] - u[i, j, ppp1]) / τ
+            -(rhs1[i, j, ppp1] +
+              (f_interaction[e2f[i, 2], j] - f_face[i, j, 2]) * dgl[ppp1] +
+              (f_interaction[e2f[i, 1], j] - f_face[i, j, 1]) * dgr[ppp1]) +
+            (M[i, j, ppp1] - u[i, j, ppp1]) / τ
     end
 end
 
@@ -133,24 +132,24 @@ p = (pspace.dx, e2f, f2e, a, vspace.u, vspace.weights, δ, deg, ll, lr, lpdm, dg
 prob = ODEProblem(mol!, f, tspan, p)
 sol = solve(
     prob,
-    ROCK4(),
-    saveat = tspan[2],
+    ROCK4();
+    saveat=tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
-    adaptive = false,
-    dt = 0.0005,
-    progress = true,
-    progress_steps = 10,
-    progress_name = "frode",
+    adaptive=false,
+    dt=0.0005,
+    progress=true,
+    progress_steps=10,
+    progress_name="frode",
     #autodiff = false,
 )
-prob = remake(prob, u0 = sol.u[end], p = p, t = tspan)
+prob = remake(prob; u0=sol.u[end], p=p, t=tspan)
 
 #--- post process ---#
 plot(xsp[:, 2], u[:, 2])
 begin
     ρ = zeros(nx, nsp)
-    for i = 1:nx, j = 1:nsp
+    for i in 1:nx, j in 1:nsp
         ρ[i, j] = moments_conserve(sol.u[end][i, :, j], vspace.u, vspace.weights)[1]
     end
     plot!(xsp[:, 2], ρ[:, 2])

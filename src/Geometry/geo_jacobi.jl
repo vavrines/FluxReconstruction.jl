@@ -36,7 +36,7 @@ function rs_jacobi(cells, points)
             xr, yr = (points[cells[i, 2], 1:2] - points[cells[i, 1], 1:2]) ./ 2
             xs, ys = (points[cells[i, 3], 1:2] - points[cells[i, 1], 1:2]) ./ 2
             [xr xs; yr ys]
-        end for i = 1:ncell
+        end for i in 1:ncell
     ]
 
     return J

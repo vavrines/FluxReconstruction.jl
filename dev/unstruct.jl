@@ -6,9 +6,9 @@ using FluxRC
 cd(@__DIR__)
 ps = UnstructFRPSpace("naca0012.msh", 3)
 
-scatter(ps.rs[:, 1], ps.rs[:, 2], ratio = 1)
+scatter(ps.rs[:, 1], ps.rs[:, 2]; ratio=1)
 i = 6;
-scatter(ps.xp[i, :, 1], ps.xp[i, :, 2], ratio = 1);
+scatter(ps.xp[i, :, 1], ps.xp[i, :, 2]; ratio=1);
 
 using PyCall
 const itp = pyimport("scipy.interpolate")
@@ -38,7 +38,7 @@ y = [-0.9, -0.45, 0.0, 0.45, 0.9]
 lx = lagrange_point(x, 0.77)
 ly = lagrange_point(y, 0.9)
 
-coords = cat(meshgrid(x, y)[1] |> permutedims, meshgrid(x, y)[2] |> permutedims, dims = 3)
+coords = cat(meshgrid(x, y)[1] |> permutedims, meshgrid(x, y)[2] |> permutedims; dims=3)
 val = exp.(coords[:, :, 1] + coords[:, :, 2] .^ 2)
 
 v = 0.0

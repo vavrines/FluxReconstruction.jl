@@ -46,8 +46,8 @@ function dudt!(du, u, p, t)
 
     u_face = zeros(ncell, 3, deg + 1, 4)
     f_face = zeros(ncell, 3, deg + 1, 4, 2)
-    @inbounds @threads for i = 1:ncell
-        for j = 1:3, k = 1:deg+1, l = 1:4
+    @inbounds @threads for i in 1:ncell
+        for j in 1:3, k in 1:deg+1, l in 1:4
             u_face[i, j, k, l] = sum(u[i, :, l] .* lf[j, k, :])
             f_face[i, j, k, l, 1] = sum(f[i, :, l, 1] .* lf[j, k, :])
             f_face[i, j, k, l, 2] = sum(f[i, :, l, 2] .* lf[j, k, :])
@@ -57,14 +57,14 @@ function dudt!(du, u, p, t)
     n = [[0.0, -1.0], [1 / √2, 1 / √2], [-1.0, 0.0]]
 
     fn_face = zeros(ncell, 3, deg + 1, 4)
-    @inbounds @threads for i = 1:ncell
-        for j = 1:3, k = 1:deg+1, l = 1:4
+    @inbounds @threads for i in 1:ncell
+        for j in 1:3, k in 1:deg+1, l in 1:4
             fn_face[i, j, k, l] = dot(f_face[i, j, k, l, :], n[j])
         end
     end
 
     fn_interaction = zeros(ncell, 3, deg + 1, 4)
-    @inbounds for i = 1:ncell, j = 1:3, k = 1:deg+1
+    @inbounds for i in 1:ncell, j in 1:3, k in 1:deg+1
         uL = local_frame(u_face[i, j, k, :], cell_normal[i, j, 1], cell_normal[i, j, 2])
 
         ni, nj, nk = fpn[i, j, k]
@@ -95,16 +95,16 @@ function dudt!(du, u, p, t)
         fwn_global = global_frame(fwn_local, cell_normal[i, j, 1], cell_normal[i, j, 2])
 
         fwn_xy = zeros(4, 2)
-        for idx = 1:4
+        for idx in 1:4
             fwn_xy[idx, :] .= fwn_global[idx] .* cell_normal[i, j, :]
         end
 
         fws_rs = zeros(4, 2)
-        for idx = 1:4
+        for idx in 1:4
             fws_rs[idx, :] .= inv(J[i]) * fwn_xy[idx, :]
         end
 
-        fwns = [sum(fws_rs[idx, :] .* n[j]) for idx = 1:4]
+        fwns = [sum(fws_rs[idx, :] .* n[j]) for idx in 1:4]
         #fwns = [sum(fws_rs[idx, :]) for idx in 1:4]
 
         fn_interaction[i, j, k, :] .= fwns
@@ -112,7 +112,7 @@ function dudt!(du, u, p, t)
 
     rhs1 = zeros(ncell, nsp, 4)
     @inbounds for i in axes(rhs1, 1)
-        for j in axes(rhs1, 2), k = 1:4
+        for j in axes(rhs1, 2), k in 1:4
             if ps.cellType[i] in [0, 1]
                 rhs1[i, j, k] =
                     -sum(f[i, :, k, 1] .* ∂l[j, :, 1]) - sum(f[i, :, k, 2] .* ∂l[j, :, 2])
@@ -121,16 +121,16 @@ function dudt!(du, u, p, t)
     end
 
     rhs2 = zero(rhs1)
-    @inbounds for i = 1:ncell
+    @inbounds for i in 1:ncell
         if ps.cellType[i] in [0, 1]
-            for j = 1:nsp, k = 1:4
+            for j in 1:nsp, k in 1:4
                 rhs2[i, j, k] =
                     -sum((fn_interaction[i, :, :, k] .- fn_face[i, :, :, k]) .* ϕ[:, :, j])
             end
         end
     end
 
-    @inbounds for i = 1:ncell
+    @inbounds for i in 1:ncell
         if ps.cellType[i] in [0, 1]
             du[i, :, :] .= rhs1[i, :, :] .+ rhs2[i, :, :]
         end
@@ -143,7 +143,7 @@ tspan = (0.0, 0.1)
 p = (ps.J, ps.lf, ps.cellNormals, ps.fpn, ps.∂l, ps.ϕ, γ)
 prob = ODEProblem(dudt!, u0, tspan, p)
 dt = 0.0005
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 
 function output(ps, itg)
     prim = zero(itg.u)
@@ -151,10 +151,10 @@ function output(ps, itg)
         prim[i, j, :] .= conserve_prim(itg.u[i, j, :], γ)
         prim[i, j, 4] = 1 / prim[i, j, 4]
     end
-    write_vtk(ps.points, ps.cellid, prim[:, 2, :])
+    return write_vtk(ps.points, ps.cellid, prim[:, 2, :])
 end
 
-@showprogress for iter = 1:500
+@showprogress for iter in 1:500
     step!(itg)
 
     if iter % 50 == 0

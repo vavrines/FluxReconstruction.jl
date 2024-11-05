@@ -18,25 +18,25 @@ end
 ps = FRPSpace1D(x0, x1, ncell, deg)
 
 u = zeros(ncell, deg + 1)
-for i = 1:ncell, j = 1:deg+1
+for i in 1:ncell, j in 1:deg+1
     u[i, j] = sin(π * ps.xpg[i, j])
 end
 
 prob = FR.FRAdvectionProblem(u, tspan, ps, a, bc)
-itg = init(prob, Tsit5(), saveat = tspan[2], adaptive = false, dt = dt)
+itg = init(prob, Tsit5(); saveat=tspan[2], adaptive=false, dt=dt)
 
-for iter = 1:nt
+for iter in 1:nt
     step!(itg)
 end
 
 begin
     x = zeros(ncell * nsp)
     sol = zeros(ncell * nsp)
-    for i = 1:ncell
+    for i in 1:ncell
         idx0 = (i - 1) * nsp
         idx = idx0+1:idx0+nsp
 
-        for j = 1:nsp
+        for j in 1:nsp
             idx = idx0 + j
             x[idx] = ps.xpg[i, j]
             sol[idx] = itg.u[i, j]
@@ -45,8 +45,8 @@ begin
     ref = @. sin(π * x)
 end
 
-plot(x, sol, label = "t=1")
-plot!(x, ref, line = :dash, label = "t=0")
+plot(x, sol; label="t=1")
+plot!(x, ref; line=:dash, label="t=0")
 
 begin
     dx |> println

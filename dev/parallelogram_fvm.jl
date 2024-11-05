@@ -17,16 +17,16 @@ using KitBase.ProgressMeter: @showprogress
 cd(@__DIR__)
 pyplot()
 
-set = Setup(
-    case = "dev",
-    space = "2d0f0v",
-    flux = "hll",
-    collision = "nothing",
-    interpOrder = 3,
-    limiter = "positivity",
-    boundary = "euler",
-    cfl = 0.1,
-    maxTime = 1.0,
+set = Setup(;
+    case="dev",
+    space="2d0f0v",
+    flux="hll",
+    collision="nothing",
+    interpOrder=3,
+    limiter="positivity",
+    boundary="euler",
+    cfl=0.1,
+    maxTime=1.0,
 )
 
 begin
@@ -57,7 +57,7 @@ begin
     y = similar(x)
     dx = similar(x)
     dy = similar(y)
-    for i = 0:nx+1, j = 0:ny+1
+    for i in 0:nx+1, j in 0:ny+1
         x[i, j] = (vertices[i, j, 1, 1] + vertices[i, j, 4, 1]) / 2 + Δx / 2
         y[i, j] = vertices[i, j, 1, 2] + 0.5 * Δy
         dx[i, j] = Δx
@@ -68,9 +68,9 @@ begin
 end
 
 vs = nothing
-gas = Gas(Kn = 1e-6, Ma = 0.0, K = 1.0)
+gas = Gas(; Kn=1e-6, Ma=0.0, K=1.0)
 fw = function (x...)
-    zeros(4)
+    return zeros(4)
 end
 ib = IB(fw, gas)
 
@@ -85,7 +85,7 @@ end
 
 function get_solution(ks, ctr)
     sol = zeros(ks.ps.nx, ks.ps.ny, 4)
-    for i = 1:ks.ps.nx, j = 1:ks.ps.ny
+    for i in 1:ks.ps.nx, j in 1:ks.ps.ny
         sol[i, j, :] .= conserve_prim(ctr[i, j].w, ks.gas.γ)
         sol[i, j, 4] = 1 / sol[i, j, 4]
     end
@@ -99,17 +99,9 @@ dt = 0.001
 nt = tspan[2] ÷ dt |> Int
 t = 0.0
 
-@showprogress for iter = 1:nt÷2
-    evolve!(
-        ks,
-        ctr,
-        a1face,
-        a2face,
-        dt;
-        mode = :hll,
-        bc = [:period, :period, :extra, :extra],
-    )
-    update!(ks, ctr, a1face, a2face, dt, zeros(4); bc = [:period, :period, :extra, :extra])
+@showprogress for iter in 1:nt÷2
+    evolve!(ks, ctr, a1face, a2face, dt; mode=:hll, bc=[:period, :period, :extra, :extra])
+    update!(ks, ctr, a1face, a2face, dt, zeros(4); bc=[:period, :period, :extra, :extra])
 
     t += dt
 end

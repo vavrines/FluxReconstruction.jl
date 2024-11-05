@@ -19,7 +19,6 @@ $(SIGNATURES)
 simplex_basis(a::AbstractVector{T}, b::AbstractVector{T}, i, j) where {T<:Real} =
     [simplex_basis(a[k], b[k], i, j) for k in eachindex(a)]
 
-
 function ∂simplex_basis(a::T, b::T, id, jd) where {T<:Real}
     #fa = jacobi(a, id, 0, 0)
     #dfa = djacobi(a, id, 0, 0)

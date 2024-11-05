@@ -6,7 +6,6 @@ Transfer coordinate r -> x from standard to real elements
 """
 r_x(r, vl, vr) = ((1.0 - r) / 2.0) * vl + ((1.0 + r) / 2.0) * vr
 
-
 """
 $(SIGNATURES)
 
@@ -58,7 +57,6 @@ function rs_xy(
               (1.0 - r) * (s + 1.0) / 4.0 * v4
 end
 
-
 """
 $(SIGNATURES)
 
@@ -82,7 +80,7 @@ function xy_rs(x::AbstractVector{T}, y::AbstractVector{T}) where {T}
     r = zeros(Np)
     s = zeros(Np)
 
-    for n = 1:Np
+    for n in 1:Np
         r[n], s[n] = xy_rs(x[n], y[n])
     end
 
@@ -95,7 +93,6 @@ $(SIGNATURES)
 function xy_rs(coords::AbstractMatrix{T}) where {T<:Real}
     return xy_rs(coords[:, 1], coords[:, 2])
 end
-
 
 """
 $(SIGNATURES)

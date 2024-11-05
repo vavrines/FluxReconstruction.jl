@@ -24,12 +24,12 @@ Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2])
 
 pf, wf = triface_quadrature(N)
 ψf = zeros(3, N + 1, Np)
-for i = 1:3
+for i in 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
 lf = zeros(3, N + 1, Np)
-for i = 1:3, j = 1:N+1
+for i in 1:3, j in 1:N+1
     lf[i, j, :] .= V' \ ψf[i, j, :]
 end
 
@@ -57,7 +57,7 @@ function dudt!(du, u, p, t)
 
     u_face = zeros(ncell, 3, deg + 1)
     f_face = zeros(ncell, 3, deg + 1, 2)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1
+    for i in 1:ncell, j in 1:3, k in 1:deg+1
         u_face[i, j, k] = sum(u[i, :] .* lf[j, k, :])
         f_face[i, j, k, 1] = sum(f[i, :, 1] .* lf[j, k, :])
         f_face[i, j, k, 2] = sum(f[i, :, 2] .* lf[j, k, :])
@@ -66,13 +66,13 @@ function dudt!(du, u, p, t)
     n = [[0.0, -1.0], [1 / √2, 1 / √2], [-1.0, 0.0]]
 
     fn_face = zeros(ncell, 3, deg + 1)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1
+    for i in 1:ncell, j in 1:3, k in 1:deg+1
         fn_face[i, j, k] = sum(f_face[i, j, k, :] .* n[j])
     end
 
     f_interaction = zeros(ncell, 3, deg + 1, 2)
     au = zeros(2)
-    for i = 1:ncell, j = 1:3, k = 1:deg+1
+    for i in 1:ncell, j in 1:3, k in 1:deg+1
         fL = J[i] * f_face[i, j, k, :]
 
         ni, nj, nk = neighbor_fpidx([i, j, k], ps, fpg)
@@ -92,8 +92,8 @@ function dudt!(du, u, p, t)
     end
 
     fn_interaction = zeros(ncell, 3, deg + 1)
-    for i = 1:ncell
-        for j = 1:3, k = 1:deg+1
+    for i in 1:ncell
+        for j in 1:3, k in 1:deg+1
             fn_interaction[i, j, k] = sum(f_interaction[i, j, k, :] .* n[j])
         end
     end
@@ -104,13 +104,13 @@ function dudt!(du, u, p, t)
     end
 
     rhs2 = zero(rhs1)
-    for i = 1:ncell
+    for i in 1:ncell
         xr, yr = ps.points[ps.cellid[i, 2], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
         xs, ys = ps.points[ps.cellid[i, 3], 1:2] - ps.points[ps.cellid[i, 1], 1:2]
         _J = xr * ys - xs * yr
 
         if ps.cellType[i] != 1
-            for j = 1:nsp
+            for j in 1:nsp
                 #rhs2[i, j] = - sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j]) / _J
                 rhs2[i, j] =
                     -sum((fn_interaction[i, :, :] .- fn_face[i, :, :]) .* ϕ[:, :, j])
@@ -119,7 +119,7 @@ function dudt!(du, u, p, t)
         end
     end
 
-    for i = 1:ncell
+    for i in 1:ncell
         if ps.cellType[i] == 0
             du[i, :] .= rhs1[i, :] .+ rhs2[i, :]
         end
@@ -134,9 +134,9 @@ prob = ODEProblem(dudt!, u, tspan, p)
 #sol = solve(prob, Midpoint(), reltol=1e-8, abstol=1e-8, progress=true)
 
 dt = 0.01
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 
-@showprogress for iter = 1:10
+@showprogress for iter in 1:10
     step!(itg)
 end
 

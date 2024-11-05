@@ -16,7 +16,7 @@ end
 ps = FRPSpace1D(x0, x1, ncell, deg)
 
 u = zeros(ncell, nsp, 3)
-for i = 1:ncell, ppp1 = 1:nsp
+for i in 1:ncell, ppp1 in 1:nsp
     if ps.x[i] <= 0.5
         prim = [1.0, 0.0, 0.5]
     else
@@ -35,13 +35,13 @@ function dudt!(du, u, p, t)
     nsp = size(u, 2)
 
     f = zeros(ncell, nsp, 3)
-    for i = 1:ncell, j = 1:nsp
+    for i in 1:ncell, j in 1:nsp
         f[i, j, :] .= euler_flux(u[i, j, :], γ)[1] ./ J[i]
     end
 
     u_face = zeros(ncell, 3, 2)
     f_face = zeros(ncell, 3, 2)
-    for i = 1:ncell, j = 1:3
+    for i in 1:ncell, j in 1:3
         # right face of element i
         u_face[i, j, 1] = dot(u[i, :, j], lr)
         f_face[i, j, 1] = dot(f[i, :, j], lr)
@@ -52,7 +52,7 @@ function dudt!(du, u, p, t)
     end
 
     f_interaction = zeros(nx + 1, 3)
-    for i = 2:nx
+    for i in 2:nx
         fw = @view f_interaction[i, :]
         flux_hll!(fw, u_face[i-1, :, 1], u_face[i, :, 2], γ, 1.0)
     end
@@ -62,17 +62,15 @@ function dudt!(du, u, p, t)
     flux_hll!(fw, u_face[nx, :, 1], u_face[1, :, 2], γ, 1.0)
 
     rhs1 = zeros(ncell, nsp, 3)
-    for i = 1:ncell, ppp1 = 1:nsp, k = 1:3
+    for i in 1:ncell, ppp1 in 1:nsp, k in 1:3
         rhs1[i, ppp1, k] = dot(f[i, :, k], lpdm[ppp1, :])
     end
 
     idx = 2:ncell-1 # ending points are Dirichlet
-    for i in idx, ppp1 = 1:nsp, k = 1:3
-        du[i, ppp1, k] = -(
-            rhs1[i, ppp1, k] +
-            (f_interaction[i, k] / J[i] - f_face[i, k, 2]) * dgl[ppp1] +
-            (f_interaction[i+1, k] / J[i] - f_face[i, k, 1]) * dgr[ppp1]
-        )
+    for i in idx, ppp1 in 1:nsp, k in 1:3
+        du[i, ppp1, k] = -(rhs1[i, ppp1, k] +
+          (f_interaction[i, k] / J[i] - f_face[i, k, 2]) * dgl[ppp1] +
+          (f_interaction[i+1, k] / J[i] - f_face[i, k, 1]) * dgr[ppp1])
     end
 end
 
@@ -80,9 +78,9 @@ tspan = (0.0, 0.15)
 p = (ps.nx, ps.deg + 1, ps.J, ps.ll, ps.lr, ps.dl, ps.dhl, ps.dhr, γ)
 prob = ODEProblem(dudt!, u, tspan, p)
 nt = tspan[2] ÷ dt |> Int
-itg = init(prob, Midpoint(), saveat = tspan[2], adaptive = false, dt = dt)
+itg = init(prob, Midpoint(); saveat=tspan[2], adaptive=false, dt=dt)
 
-@showprogress for iter = 1:nt
+@showprogress for iter in 1:nt
     step!(itg)
 end
 

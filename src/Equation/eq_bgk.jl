@@ -6,7 +6,7 @@ function bgk!(du, u, p, t)
     nsp = size(u, 3)
 
     M = similar(u, ncell, nu, nsp)
-    for i = 1:ncell, k = 1:nsp
+    for i in 1:ncell, k in 1:nsp
         w = moments_conserve(u[i, :, k], velo, weights)
         prim = conserve_prim(w, 3.0)
         M[i, :, k] .= maxwellian(velo, prim)
@@ -14,7 +14,7 @@ function bgk!(du, u, p, t)
     τ = 1e-2
 
     f = similar(u)
-    for i = 1:ncell, j = 1:nu, k = 1:nsp
+    for i in 1:ncell, j in 1:nu, k in 1:nsp
         J = 0.5 * dx[i]
         f[i, j, k] = velo[j] * u[i, j, k] / J
     end
@@ -28,12 +28,12 @@ function bgk!(du, u, p, t)
         f_face[i, j, 2] += f[i, j, k] * ll[k]
     end=#
 
-    @views for i = 1:ncell, j = 1:nu
+    @views for i in 1:ncell, j in 1:nu
         FluxRC.interp_interface!(f_face[i, j, :], f[i, j, :], ll, lr)
     end
 
     f_interaction = similar(u, nface, nu)
-    for i = 1:nface
+    for i in 1:nface
         @. f_interaction[i, :] =
             f_face[f2e[i, 1], :, 1] * (1.0 - δ) + f_face[f2e[i, 2], :, 2] * δ
     end
@@ -43,7 +43,7 @@ function bgk!(du, u, p, t)
     #   rhs1[i, j, ppp1] += f[i, j, k] * lpdm[ppp1, k]
     #end
 
-    @views for i = 1:ncell, j = 1:nu
+    @views for i in 1:ncell, j in 1:nu
         FluxRC.poly_derivative!(rhs1[i, j, :], f[i, j, :], lpdm)
     end
 
@@ -51,12 +51,11 @@ function bgk!(du, u, p, t)
     #    rhs1[i, j, k] = dot(f[i, j, :], lpdm[k, :])
     #end
 
-    for i = 1:ncell, j = 1:nu, ppp1 = 1:nsp
+    for i in 1:ncell, j in 1:nu, ppp1 in 1:nsp
         du[i, j, ppp1] =
-            -(
-                rhs1[i, j, ppp1] +
-                (f_interaction[e2f[i, 2], j] - f_face[i, j, 1]) * dgl[ppp1] +
-                (f_interaction[e2f[i, 1], j] - f_face[i, j, 2]) * dgr[ppp1]
-            ) + (M[i, j, ppp1] - u[i, j, ppp1]) / τ
+            -(rhs1[i, j, ppp1] +
+              (f_interaction[e2f[i, 2], j] - f_face[i, j, 1]) * dgl[ppp1] +
+              (f_interaction[e2f[i, 1], j] - f_face[i, j, 2]) * dgr[ppp1]) +
+            (M[i, j, ppp1] - u[i, j, ppp1]) / τ
     end
 end

@@ -33,7 +33,7 @@ begin
 end
 
 f0 = zeros(nx, nu, nsp)
-for i = 1:nx, ppp1 = 1:nsp
+for i in 1:nx, ppp1 in 1:nsp
     _ρ = 1.0 + 0.1 * sin(2.0 * π * ps.xp[i, ppp1])
     _T = 2 * 0.5 / _ρ
 
@@ -41,7 +41,7 @@ for i = 1:nx, ppp1 = 1:nsp
 end
 
 e2f = zeros(Int, nx, 2)
-for i = 1:nx
+for i in 1:nx
     if i == 1
         e2f[i, 2] = nface
         e2f[i, 1] = i + 1
@@ -54,7 +54,7 @@ for i = 1:nx
     end
 end
 f2e = zeros(Int, nface, 2)
-for i = 1:nface
+for i in 1:nface
     if i == 1
         f2e[i, 1] = i
         f2e[i, 2] = nx
@@ -75,7 +75,7 @@ function mol!(du, u, p, t)
     nsp = size(u, 3)
 
     M = similar(u, ncell, nu, nsp)
-    for i = 1:ncell, k = 1:nsp
+    for i in 1:ncell, k in 1:nsp
         w = moments_conserve(u[i, :, k], velo, weights)
         prim = conserve_prim(w, 3.0)
         M[i, :, k] .= maxwellian(velo, prim)
@@ -83,7 +83,7 @@ function mol!(du, u, p, t)
     τ = 1e-2
 
     f = similar(u)
-    for i = 1:ncell, j = 1:nu, k = 1:nsp
+    for i in 1:ncell, j in 1:nu, k in 1:nsp
         J = 0.5 * dx[i]
         f[i, j, k] = velo[j] * u[i, j, k] / J
     end
@@ -97,12 +97,12 @@ function mol!(du, u, p, t)
         f_face[i, j, 2] += f[i, j, k] * ll[k]
     end=#
 
-    @views for i = 1:ncell, j = 1:nu
+    @views for i in 1:ncell, j in 1:nu
         FluxRC.interp_interface!(f_face[i, j, :], f[i, j, :], ll, lr)
     end
 
     f_interaction = similar(u, nface, nu)
-    for i = 1:nface
+    for i in 1:nface
         @. f_interaction[i, :] =
             f_face[f2e[i, 1], :, 1] * (1.0 - δ) + f_face[f2e[i, 2], :, 2] * δ
     end
@@ -112,7 +112,7 @@ function mol!(du, u, p, t)
     #   rhs1[i, j, ppp1] += f[i, j, k] * lpdm[ppp1, k]
     #end
 
-    @views for i = 1:ncell, j = 1:nu
+    @views for i in 1:ncell, j in 1:nu
         FluxRC.poly_derivative!(rhs1[i, j, :], f[i, j, :], lpdm)
     end
 
@@ -120,14 +120,12 @@ function mol!(du, u, p, t)
     #    rhs1[i, j, k] = dot(f[i, j, :], lpdm[k, :])
     #end
 
-
-    for i = 1:ncell, j = 1:nu, ppp1 = 1:nsp
+    for i in 1:ncell, j in 1:nu, ppp1 in 1:nsp
         du[i, j, ppp1] =
-            -(
-                rhs1[i, j, ppp1] +
-                (f_interaction[e2f[i, 2], j] - f_face[i, j, 1]) * dgl[ppp1] +
-                (f_interaction[e2f[i, 1], j] - f_face[i, j, 2]) * dgr[ppp1]
-            ) + (M[i, j, ppp1] - u[i, j, ppp1]) / τ
+            -(rhs1[i, j, ppp1] +
+              (f_interaction[e2f[i, 2], j] - f_face[i, j, 1]) * dgl[ppp1] +
+              (f_interaction[e2f[i, 1], j] - f_face[i, j, 2]) * dgr[ppp1]) +
+            (M[i, j, ppp1] - u[i, j, ppp1]) / τ
     end
 end
 
@@ -136,19 +134,19 @@ p = (ps.dx, e2f, f2e, vs.u, vs.weights, δ, deg, ll, lr, lpdm, dgl, dgr)
 prob = ODEProblem(mol!, f0, tspan, p)
 sol = solve(
     prob,
-    Midpoint(),
+    Midpoint();
     #ABDF2(),
     #TRBDF2(),
     #Kvaerno3(),
     #KenCarp3(),
-    saveat = tspan[2],
+    saveat=tspan[2],
     #reltol = 1e-8,
     #abstol = 1e-8,
-    adaptive = false,
-    dt = dt,
-    progress = true,
-    progress_steps = 10,
-    progress_name = "frode",
+    adaptive=false,
+    dt=dt,
+    progress=true,
+    progress_steps=10,
+    progress_name="frode",
     #autodiff = false,
 )
 
@@ -157,11 +155,11 @@ begin
     w = zeros(nx * nsp, 3)
     prim = zeros(nx * nsp, 3)
     prim0 = zeros(nx * nsp, 3)
-    for i = 1:nx
+    for i in 1:nx
         idx0 = (i - 1) * nsp
         idx = idx0+1:idx0+nsp
 
-        for j = 1:nsp
+        for j in 1:nsp
             idx = idx0 + j
             x[idx] = xsp[i, j]
 
@@ -180,5 +178,5 @@ end
 #FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
 #FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
 
-plot(x, prim0[:, 1], label = "t=0")
-plot!(x[1:end], prim[1:end, 1], label = "t=1")
+plot(x, prim0[:, 1]; label="t=0")
+plot!(x[1:end], prim[1:end, 1]; label="t=1")

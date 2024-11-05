@@ -10,7 +10,7 @@ _P. O. Persson and J. Peraire. Sub-cell shock capturing for discontinuous Galerk
 - @arg S0: reference point of Se
 - @arg κ: empirical parameter that needs to be chosen sufficiently large so as to obtain a sharp but smooth shock profile
 """
-function shock_detector(Se, deg, S0 = -3.0 * log10(deg), κ = 4.0)
+function shock_detector(Se, deg, S0=-3.0 * log10(deg), κ=4.0)
     if Se < S0 - κ
         σ = 1.0
     elseif S0 - κ <= Se < S0 + κ
@@ -21,7 +21,6 @@ function shock_detector(Se, deg, S0 = -3.0 * log10(deg), κ = 4.0)
 
     return σ < 0.99 ? true : false
 end
-
 
 """
 $(SIGNATURES)
@@ -41,9 +40,8 @@ function positive_limiter(
     weights,
     ll,
     lr,
-    t0 = 1.0,
+    t0=1.0,
 ) where {T<:AbstractFloat}
-
     um = sum(u .* weights) / sum(weights)
     ub = [dot(u, ll), dot(u, lr)]
 
@@ -58,7 +56,6 @@ function positive_limiter(
     end
 
     return nothing
-
 end
 
 function positive_limiter(
@@ -67,7 +64,7 @@ function positive_limiter(
     weights,
     ll,
     lr,
-    t0 = 1.0,
+    t0=1.0,
 ) where {T<:AbstractFloat}
 
     # mean values
@@ -92,7 +89,7 @@ function positive_limiter(
 
     # energy corrector
     tj = Float64[]
-    for i = 1:2 # flux points
+    for i in 1:2 # flux points
         prim = conserve_prim([ρb[i], mb[i], eb[i]], γ)
 
         if prim[end] < ϵ
@@ -101,7 +98,7 @@ function positive_limiter(
                 1.0,
                 ([ρb[i], mb[i], eb[i]], u_mean, γ, ϵ),
             )
-            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            sol = solve(prob, NewtonRaphson(); tol=1e-9)
             push!(tj, sol.u)
         end
     end
@@ -110,7 +107,7 @@ function positive_limiter(
 
         if prim[end] < ϵ
             prob = NonlinearProblem{false}(tj_equation, 1.0, (u[i, :], u_mean, γ, ϵ))
-            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            sol = solve(prob, NewtonRaphson(); tol=1e-9)
             push!(tj, sol.u)
         end
     end
@@ -123,7 +120,6 @@ function positive_limiter(
     end
 
     return nothing
-
 end
 
 function positive_limiter(
@@ -132,7 +128,7 @@ function positive_limiter(
     weights,
     ll,
     lr,
-    t0 = 1.0,
+    t0=1.0,
 ) where {T<:AbstractFloat}
 
     # mean values
@@ -176,7 +172,7 @@ function positive_limiter(
 
     # energy corrector
     tj = Float64[]
-    for j = 1:length(ll), i = 1:4
+    for j in 1:length(ll), i in 1:4
         prim = conserve_prim([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], γ)
 
         if prim[end] < ϵ
@@ -185,7 +181,7 @@ function positive_limiter(
                 1.0,
                 ([ρb[i, j], mxb[i, j], myb[i, j], eb[i, j]], u_mean, γ, ϵ),
             )
-            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            sol = solve(prob, NewtonRaphson(); tol=1e-9)
             push!(tj, sol.u)
         end
     end
@@ -194,7 +190,7 @@ function positive_limiter(
 
         if prim[end] < ϵ
             prob = NonlinearProblem{false}(tj_equation, 1.0, (u[i, j, :], u_mean, γ, ϵ))
-            sol = solve(prob, NewtonRaphson(), tol = 1e-9)
+            sol = solve(prob, NewtonRaphson(); tol=1e-9)
             push!(tj, sol.u)
         end
     end
@@ -207,7 +203,6 @@ function positive_limiter(
     end
 
     return nothing
-
 end
 
 function tj_equation(t, p)

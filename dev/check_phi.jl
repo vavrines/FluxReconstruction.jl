@@ -101,7 +101,7 @@ Vr, Vs = ∂vandermonde_matrix(N, pl[:, 1], pl[:, 2])
 
 pf, wf = triface_quadrature(N)
 ψf = zeros(3, N + 1, Np)
-for i = 1:3
+for i in 1:3
     ψf[i, :, :] .= vandermonde_matrix(N, pf[i, :, 1], pf[i, :, 2])
 end
 
@@ -111,14 +111,14 @@ V1 = hcat(V[1, :], V[3, :], V[5, :], V[2, :], V[4, :], V[6, :]) |> permutedims
 
 # Vandermonde -> flux points
 Vf = zeros(9, 6)
-for i = 1:3, j = 1:3
+for i in 1:3, j in 1:3
     Vf[(i-1)*3+j, :] .= ψf[i, j, :]
 end
 @test Vf ≈ py_Vf
 
 # coefficients
 ϕ1 = zeros(6, 9)
-for i = 1:3, j = 1:3
+for i in 1:3, j in 1:3
     ϕ1[:, (i-1)*3+j] .= ϕ[i, j, :]
 end
 ϕ2 = hcat(ϕ1[1, :], ϕ1[3, :], ϕ1[5, :], ϕ1[2, :], ϕ1[4, :], ϕ1[6, :]) |> permutedims

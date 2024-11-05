@@ -32,7 +32,7 @@ gas = Gas(knudsen, 0.0, 1.0, 1.0, γ, 0.81, 1.0, 0.5, μᵣ)
 
 u0 = OffsetArray{Float64}(undef, 4, nsp, nsp, 0:ny+1, 0:nx+1)
 #for i = 1:nsp, j = 1:nsp, k = 0:ny+1, l = 0:nx+1
-for i = 0:nx+1, j = 0:ny+1, k = 1:nsp, l = 1:nsp
+for i in 0:nx+1, j in 0:ny+1, k in 1:nsp, l in 1:nsp
     u0[:, l, k, j, i] .= prim_conserve([1.0, 0.0, 0.0, 1.0], gas.γ)
 
     #ρ = max(exp(-50 * ((ps.xpg[l, k, j, i, 1] - 0.5)^2 + (ps.xpg[l, k, j, i, 2] - 0.5)^2)), 1e-2)
@@ -53,7 +53,7 @@ function KitBase.flux_gks!(
     γ::Real,
     μᵣ::Real,
     ω::Real,
-    sw = zero(w)::AbstractVector{T2},
+    sw=zero(w)::AbstractVector{T2},
 ) where {T1<:AbstractFloat,T2<:Real}
     prim = conserve_prim(w, γ)
     Mu, Mv, Mxi, MuL, MuR = gauss_moments(prim, inK)
@@ -81,8 +81,8 @@ function KitBase.flux_gks!(
     μᵣ::Real,
     ω::Real,
     dt::Real,
-    swL = zero(wL)::Y,
-    swR = zero(wR)::Y,
+    swL=zero(wL)::Y,
+    swR=zero(wR)::Y,
 ) where {X<:AbstractArray{<:AbstractFloat,1},Y<:AbstractArray{<:AbstractFloat,1}}
     primL = conserve_prim(wL, γ)
     primR = conserve_prim(wR, γ)
@@ -166,8 +166,8 @@ function dudt!(du, u, p, t)
     nr = size(u, 3)
     ns = size(u, 2)
 
-    @inbounds for i = 1:nx
-        for j = 1:ny, k = 1:nr, l = 1:ns
+    @inbounds for i in 1:nx
+        for j in 1:ny, k in 1:nr, l in 1:ns
             fw = @view fx[:, l, k, j, i]
             flux_gks!(fw, u[:, l, k, j, i], gas.K, gas.γ, gas.μᵣ, gas.ω, zeros(4))
             fw ./= ps.J[i, j][1]
@@ -175,8 +175,8 @@ function dudt!(du, u, p, t)
             #fx[:, l, k, j, i] .= euler_flux(u[:, l, k, j, i], gas.γ)[1] ./ ps.J[i, j][1]
         end
     end
-    @inbounds @threads for i = 1:nx
-        for j = 1:ny, k = 1:nr, l = 1:ns
+    @inbounds @threads for i in 1:nx
+        for j in 1:ny, k in 1:nr, l in 1:ns
             fw = @view fy[:, l, k, j, i]
             ul = local_frame(u[:, l, k, j, i], 0.0, 1.0)
             flux_gks!(fw, ul, gas.K, gas.γ, gas.μᵣ, gas.ω, zeros(4))
@@ -186,8 +186,8 @@ function dudt!(du, u, p, t)
         end
     end
 
-    @inbounds for i = 0:nx+1
-        for j = 1:ny, l = 1:ns, m = 1:4
+    @inbounds for i in 0:nx+1
+        for j in 1:ny, l in 1:ns, m in 1:4
             ux_face[m, 1, l, j, i] = dot(u[m, l, :, j, i], ps.ll)
             ux_face[m, 2, l, j, i] = dot(u[m, l, :, j, i], ps.lr)
 
@@ -195,8 +195,8 @@ function dudt!(du, u, p, t)
             fx_face[m, 2, l, j, i] = dot(fx[m, l, :, j, i], ps.lr)
         end
     end
-    @inbounds for i = 1:nx
-        for j = 0:ny+1, k = 1:nr, m = 1:4
+    @inbounds for i in 1:nx
+        for j in 0:ny+1, k in 1:nr, m in 1:4
             uy_face[m, 1, k, j, i] = dot(u[m, :, k, j, i], ps.ll)
             uy_face[m, 2, k, j, i] = dot(u[m, :, k, j, i], ps.lr)
 
@@ -205,8 +205,8 @@ function dudt!(du, u, p, t)
         end
     end
 
-    @inbounds for i = 1:nx+1
-        for j = 1:ny, l = 1:ns
+    @inbounds for i in 1:nx+1
+        for j in 1:ny, l in 1:ns
             swL = zeros(4)
             swR = zeros(4)
             for m in eachindex(swL)
@@ -236,8 +236,8 @@ function dudt!(du, u, p, t)
             )=#
         end
     end
-    @inbounds for i = 1:nx
-        for j = 1:ny+1, k = 1:nr
+    @inbounds for i in 1:nx
+        for j in 1:ny+1, k in 1:nr
             swL = zeros(4)
             swR = zeros(4)
             for m in eachindex(swL)
@@ -261,24 +261,22 @@ function dudt!(du, u, p, t)
         end
     end
 
-    @inbounds for i = 1:nx, j = 1:ny, k = 1:nr, l = 1:ns, m = 1:4
+    @inbounds for i in 1:nx, j in 1:ny, k in 1:nr, l in 1:ns, m in 1:4
         rhs1[m, l, k, j, i] = dot(fx[m, l, :, j, i], ps.dl[k, :])
         rhs2[m, l, k, j, i] = dot(fy[m, :, k, j, i], ps.dl[l, :])
     end
 
-    @inbounds for i = 1:nx, j = 1:ny, k = 1:nr, l = 1:ns, m = 1:4
-        du[m, l, k, j, i] = -(
-            rhs1[m, l, k, j, i] +
-            rhs2[m, l, k, j, i] +
-            (fx_interaction[m, l, j, i] / ps.J[i, j][1] - fx_face[m, 1, l, j, i]) *
-            ps.dhl[k] +
-            (fx_interaction[m, l, j, i+1] / ps.J[i, j][1] - fx_face[m, 2, l, j, i]) *
-            ps.dhr[k] +
-            (fy_interaction[m, k, j, i] / ps.J[i, j][2] - fy_face[m, 1, k, j, i]) *
-            ps.dhl[l] +
-            (fy_interaction[m, k, j+1, i] / ps.J[i, j][2] - fy_face[m, 2, k, j, i]) *
-            ps.dhr[l]
-        )
+    @inbounds for i in 1:nx, j in 1:ny, k in 1:nr, l in 1:ns, m in 1:4
+        du[m, l, k, j, i] = -(rhs1[m, l, k, j, i] +
+          rhs2[m, l, k, j, i] +
+          (fx_interaction[m, l, j, i] / ps.J[i, j][1] - fx_face[m, 1, l, j, i]) *
+          ps.dhl[k] +
+          (fx_interaction[m, l, j, i+1] / ps.J[i, j][1] - fx_face[m, 2, l, j, i]) *
+          ps.dhr[k] +
+          (fy_interaction[m, k, j, i] / ps.J[i, j][2] - fy_face[m, 1, k, j, i]) *
+          ps.dhl[l] +
+          (fy_interaction[m, k, j+1, i] / ps.J[i, j][2] - fy_face[m, 2, k, j, i]) *
+          ps.dhr[l])
     end
     du[:, :, :, :, 0] .= 0.0
     du[:, :, :, :, nx+1] .= 0.0
@@ -297,7 +295,7 @@ function boundary!(u, p, λ0)
     ns = size(u, 2)
 
     pb = zeros(4)
-    for j = 1:ny, k = 1:nr, l = 1:ns
+    for j in 1:ny, k in 1:nr, l in 1:ns
         prim = conserve_prim(u[:, l, k, j, 1], gas.γ)
 
         pb[end] = 2 * λ0 - prim[end]
@@ -308,7 +306,7 @@ function boundary!(u, p, λ0)
 
         u[:, l, nr+1-k, j, 0] .= prim_conserve(pb, gas.γ)
     end
-    for j = 1:ny, k = 1:nr, l = 1:ns
+    for j in 1:ny, k in 1:nr, l in 1:ns
         prim = conserve_prim(u[:, l, k, j, nx], gas.γ)
 
         pb[end] = 2 * λ0 - prim[end]
@@ -319,7 +317,7 @@ function boundary!(u, p, λ0)
 
         u[:, l, nr+1-k, j, nx+1] .= prim_conserve(pb, gas.γ)
     end
-    for i = 1:nx, k = 1:nr, l = 1:ns
+    for i in 1:nx, k in 1:nr, l in 1:ns
         prim = conserve_prim(u[:, l, k, 1, i], gas.γ)
 
         pb[end] = 2 * λ0 - prim[end]
@@ -330,7 +328,7 @@ function boundary!(u, p, λ0)
 
         u[:, ns+1-l, k, 0, i] .= prim_conserve(pb, gas.γ)
     end
-    for i = 1:nx, k = 1:nr, l = 1:ns
+    for i in 1:nx, k in 1:nr, l in 1:ns
         prim = conserve_prim(u[:, l, k, ny, i], gas.γ)
 
         pb[end] = 2 * λ0 - prim[end]
@@ -379,9 +377,9 @@ p = (
 #dudt!(du, u, p, 0.0)
 
 prob = ODEProblem(dudt!, u0, tspan, p)
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 
-@showprogress for iter = 1:100#nt
+@showprogress for iter in 1:100#nt
     step!(itg)
 end
 
@@ -398,11 +396,11 @@ plot(ps.xpg[1, 1:ny, 1, 1, 2], itg.u[3, 1, 1, 1:ny, nx÷2])
 begin
     coord = zeros(nx * nsp, ny * nsp, 2)
     prim = zeros(nx * nsp, ny * nsp, 4)
-    for i = 1:nx, j = 1:ny
+    for i in 1:nx, j in 1:ny
         idx0 = (i - 1) * nsp
         idy0 = (j - 1) * nsp
 
-        for k = 1:nsp, l = 1:nsp
+        for k in 1:nsp, l in 1:nsp
             idx = idx0 + k
             idy = idy0 + l
             coord[idx, idy, 1] = ps.xpg[i, j, k, l, 1]
@@ -431,16 +429,16 @@ begin
         coord[1, 1, 2]:(coord[1, end, 2]-coord[1, 1, 2])/(ny*nsp-1):coord[1, end, 2] |>
         collect
 
-    n_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 1], kind = "cubic")
+    n_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 1]; kind="cubic")
     n_uni = n_ref(x_uni, y_uni)
 
-    u_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 2], kind = "cubic")
+    u_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 2]; kind="cubic")
     u_uni = u_ref(x_uni, y_uni)
 
-    v_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 3], kind = "cubic")
+    v_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 3]; kind="cubic")
     v_uni = v_ref(x_uni, y_uni)
 
-    t_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 4], kind = "cubic")
+    t_ref = itp.interp2d(coord[:, 1, 1], coord[1, :, 2], prim[:, :, 4]; kind="cubic")
     t_uni = t_ref(x_uni, y_uni)
 end
 

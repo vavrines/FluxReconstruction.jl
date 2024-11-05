@@ -20,7 +20,7 @@ end
 u0 = deepcopy(u)
 
 cell_normal = zeros(ncell, 3, 2)
-for i = 1:ncell
+for i in 1:ncell
     pids = ps.cellid[i, :]
 
     cell_normal[i, 1, :] .= unit_normal(ps.points[pids[1], :], ps.points[pids[2], :])
@@ -34,7 +34,7 @@ for i = 1:ncell
             ps.points[pids[3], :] .+ ps.points[pids[1], :],
         ] / 2
 
-    for j = 1:3
+    for j in 1:3
         if dot(cell_normal[i, j, :], p[j][1:2] - ps.cellCenter[i, 1:2]) < 0
             cell_normal[i, j, :] .= -cell_normal[i, j, :]
         end
@@ -42,11 +42,11 @@ for i = 1:ncell
 end
 
 cell_length = zeros(ncell, 3)
-for i = 1:ncell
+for i in 1:ncell
     pids = ps.cellid[i, :]
     cids = ps.cellNeighbors[i, :]
 
-    for j = 1:3
+    for j in 1:3
         if cids[j] > 0
             nodes = intersect(pids, ps.cellid[cids[j], :])
             cell_length[i, j] = norm(ps.points[nodes[1], 1:2] - ps.points[nodes[2], 1:2])
@@ -81,11 +81,9 @@ function dudt!(du, u, p, t)
             fa2 = flux_ad(f[i, :], f2, u[i], u2)
             fa3 = flux_ad(f[i, :], f3, u[i], u3)
 
-            du[i] = -(
-                dot(fa1, cell_normal[i, 1, :]) * cell_length[i, 1] +
-                dot(fa2, cell_normal[i, 2, :]) * cell_length[i, 2] +
-                dot(fa3, cell_normal[i, 3, :]) * cell_length[i, 3]
-            )
+            du[i] = -(dot(fa1, cell_normal[i, 1, :]) * cell_length[i, 1] +
+              dot(fa2, cell_normal[i, 2, :]) * cell_length[i, 2] +
+              dot(fa3, cell_normal[i, 3, :]) * cell_length[i, 3])
 
             du[i] /= ps.cellArea[i]
         end
@@ -99,15 +97,14 @@ du = zero(u)
 p = (ps, ax, ay)
 dudt!(du, u, p, 0.0)
 
-
 tspan = (0.0, 1.0)
 #p = ()
 prob = ODEProblem(dudt!, u, tspan, p)
 
 dt = 0.01
-itg = init(prob, Euler(), save_everystep = false, adaptive = false, dt = dt)
+itg = init(prob, Euler(); save_everystep=false, adaptive=false, dt=dt)
 
-@showprogress for iter = 1:10
+@showprogress for iter in 1:10
     step!(itg)
 end
 

@@ -21,20 +21,19 @@ function Base.getproperty(x::AbstractUnstructFRSpace, name::Symbol)
     end
 end
 
-function Base.propertynames(x::AbstractStructFRSpace, private::Bool = false)
+function Base.propertynames(x::AbstractStructFRSpace, private::Bool=false)
     public = fieldnames(typeof(x))
-    true ?
-    (
-        (
-            public ∪
-            union(fieldnames(PSpace1D), fieldnames(PSpace2D), fieldnames(KitBase.CSpace2D))
-        )...,
-    ) : public
+    return true ?
+           ((public ∪ union(
+        fieldnames(PSpace1D),
+        fieldnames(PSpace2D),
+        fieldnames(KitBase.CSpace2D),
+    ))...,) : public
 end
 
-function Base.propertynames(x::AbstractUnstructFRSpace, private::Bool = false)
+function Base.propertynames(x::AbstractUnstructFRSpace, private::Bool=false)
     public = fieldnames(typeof(x))
-    true ? ((public ∪ fieldnames(UnstructPSpace))...,) : public
+    return true ? ((public ∪ fieldnames(UnstructPSpace))...,) : public
 end
 
 # ------------------------------------------------------------

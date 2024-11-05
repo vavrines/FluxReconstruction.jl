@@ -25,13 +25,12 @@ function JacobiP(x::T, alpha, beta, N) where {T<:Real}
 
     # forward recurrence using the symmetry of the recurrence
     aold = 2 / (2 + alpha + beta) * sqrt((alpha + 1) * (beta + 1) / (alpha + beta + 3))
-    for i = 1:N-1
+    for i in 1:N-1
         h1 = 2 * i + alpha + beta
         anew =
-            2 / (h1 + 2) * sqrt(
-                (i + 1) * (i + 1 + alpha + beta) * (i + 1 + alpha) * (i + 1 + beta) /
-                (h1 + 1) / (h1 + 3),
-            )
+            2 / (h1 + 2) *
+            sqrt((i + 1) * (i + 1 + alpha + beta) * (i + 1 + alpha) * (i + 1 + beta) /
+                 (h1 + 1) / (h1 + 3),)
         bnew = -(alpha^2 - beta^2) / h1 / (h1 + 2)
         PL[i+2] = 1 / anew * (-aold * PL[i] + (xp - bnew) * PL[i+1])
         aold = anew
@@ -67,13 +66,12 @@ function JacobiP(x::AbstractArray, alpha, beta, N)
 
     # forward recurrence using the symmetry of the recurrence
     aold = 2 / (2 + alpha + beta) * sqrt((alpha + 1) * (beta + 1) / (alpha + beta + 3))
-    for i = 1:N-1
+    for i in 1:N-1
         h1 = 2 * i + alpha + beta
         anew =
-            2 / (h1 + 2) * sqrt(
-                (i + 1) * (i + 1 + alpha + beta) * (i + 1 + alpha) * (i + 1 + beta) /
-                (h1 + 1) / (h1 + 3),
-            )
+            2 / (h1 + 2) *
+            sqrt((i + 1) * (i + 1 + alpha + beta) * (i + 1 + alpha) * (i + 1 + beta) /
+                 (h1 + 1) / (h1 + 3),)
         bnew = -(alpha^2 - beta^2) / h1 / (h1 + 2)
         @. PL[i+2, :] = 1 / anew * (-aold * PL[i, :] + (xp - bnew) * PL[i+1, :])
         aold = anew

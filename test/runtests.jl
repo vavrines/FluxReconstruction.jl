@@ -32,8 +32,8 @@ let u = rand(deg + 1)
 end
 
 let u = rand(deg + 1, deg + 1)
-    modal_filter!(u, 1e-6, 1e-6; filter = :l2)
-    modal_filter!(u, 1e-6, 1e-6; filter = :l2opt)
+    modal_filter!(u, 1e-6, 1e-6; filter=:l2)
+    modal_filter!(u, 1e-6, 1e-6; filter=:l2opt)
 end
 
 f = randn(5, deg + 1)

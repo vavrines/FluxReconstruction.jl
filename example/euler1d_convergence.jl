@@ -3,9 +3,9 @@ using KitBase.ProgressMeter: @showprogress
 
 function extract_x(ps)
     x = zeros(ps.nx * (ps.deg + 1))
-    for i = 1:ps.nx
+    for i in 1:ps.nx
         idx0 = (i - 1) * (ps.deg + 1)
-        for k = 1:ps.deg+1
+        for k in 1:ps.deg+1
             idx = idx0 + k
             x[idx] = ps.xpg[i, k]
         end
@@ -17,9 +17,9 @@ end
 function extract_sol(itg, ps, γ)
     sol = zeros(ps.nx * (ps.deg + 1), 3)
 
-    for i = 1:ps.nx
+    for i in 1:ps.nx
         idx0 = (i - 1) * (ps.deg + 1)
-        for k = 1:ps.deg+1
+        for k in 1:ps.deg+1
             idx = idx0 + k
 
             sol[idx, :] .= conserve_prim(itg.u[i, k, :], γ)
@@ -33,9 +33,9 @@ end
 function extract_sol(itg::ODESolution, ps, γ)
     sol = zeros(ps.nx * (ps.deg + 1), 3)
 
-    for i = 1:ps.nx
+    for i in 1:ps.nx
         idx0 = (i - 1) * (ps.deg + 1)
-        for k = 1:ps.deg+1
+        for k in 1:ps.deg+1
             idx = idx0 + k
 
             sol[idx, :] .= conserve_prim(itg.u[end][i, k, :], γ)
@@ -64,7 +64,7 @@ ncells = [4, 8, 16, 32, 64, 128]
     ps = FRPSpace1D(x0, x1, ncell, deg)
 
     u = zeros(ncell, nsp, 3)
-    for i = 1:ncell, ppp1 = 1:nsp
+    for i in 1:ncell, ppp1 in 1:nsp
         ρ = 1 + 0.2 * sin(2π * ps.xpg[i, ppp1])
         prim = [ρ, 1.0, ρ]
         u[i, ppp1, :] .= prim_conserve(prim, γ)
@@ -85,13 +85,13 @@ ncells = [4, 8, 16, 32, 64, 128]
         nsp = size(u, 2)
 
         f = zeros(ncell, nsp, 3)
-        for i = 1:ncell, j = 1:nsp
+        for i in 1:ncell, j in 1:nsp
             f[i, j, :] .= euler_flux(u[i, j, :], γ)[1] ./ J[i]
         end
 
         u_face = zeros(ncell, 3, 2)
         f_face = zeros(ncell, 3, 2)
-        for i = 1:ncell, j = 1:3
+        for i in 1:ncell, j in 1:3
             # right face of element i
             u_face[i, j, 1] = dot(u[i, :, j], lr)
             f_face[i, j, 1] = dot(f[i, :, j], lr)
@@ -102,7 +102,7 @@ ncells = [4, 8, 16, 32, 64, 128]
         end
 
         f_interaction = zeros(nx + 1, 3)
-        for i = 2:nx
+        for i in 2:nx
             fw = @view f_interaction[i, :]
             flux_hll!(fw, u_face[i-1, :, 1], u_face[i, :, 2], γ, 1.0)
         end
@@ -113,17 +113,15 @@ ncells = [4, 8, 16, 32, 64, 128]
         flux_hll!(fw, u_face[nx, :, 1], u_face[1, :, 2], γ, 1.0)
 
         rhs1 = zeros(ncell, nsp, 3)
-        for i = 1:ncell, ppp1 = 1:nsp, k = 1:3
+        for i in 1:ncell, ppp1 in 1:nsp, k in 1:3
             rhs1[i, ppp1, k] = dot(f[i, :, k], lpdm[ppp1, :])
         end
 
         idx = 1:ncell
-        for i in idx, ppp1 = 1:nsp, k = 1:3
-            du[i, ppp1, k] = -(
-                rhs1[i, ppp1, k] +
-                (f_interaction[i, k] / J[i] - f_face[i, k, 2]) * dgl[ppp1] +
-                (f_interaction[i+1, k] / J[i] - f_face[i, k, 1]) * dgr[ppp1]
-            )
+        for i in idx, ppp1 in 1:nsp, k in 1:3
+            du[i, ppp1, k] = -(rhs1[i, ppp1, k] +
+              (f_interaction[i, k] / J[i] - f_face[i, k, 2]) * dgl[ppp1] +
+              (f_interaction[i+1, k] / J[i] - f_face[i, k, 1]) * dgr[ppp1])
         end
     end
 
@@ -132,7 +130,7 @@ ncells = [4, 8, 16, 32, 64, 128]
     prob = ODEProblem(dudt!, u, tspan, p)
     nt = tspan[2] / dt |> Int # Alignment is required here
 
-    itg = solve(prob, Tsit5(), saveat = tspan[2], adaptive = false, dt = dt)
+    itg = solve(prob, Tsit5(); saveat=tspan[2], adaptive=false, dt=dt)
     #itg = init(prob, Tsit5(), saveat = tspan[2], adaptive = false, dt = dt)
     #for iter = 1:nt
     #    step!(itg)

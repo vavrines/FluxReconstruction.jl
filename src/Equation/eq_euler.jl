@@ -32,13 +32,13 @@ function frode_euler!(du::AbstractTensor3, u, p, t)
     ncell = size(u, 1)
     nsp = size(u, 2)
 
-    @inbounds @threads for j = 1:nsp
-        for i = 1:ncell
+    @inbounds @threads for j in 1:nsp
+        for i in 1:ncell
             f[i, j, :] .= euler_flux(u[i, j, :], γ)[1] ./ J[i]
         end
     end
 
-    @inbounds @threads for j = 1:3
+    @inbounds @threads for j in 1:3
         # left face of element i
         u_face[:, 1, j] .= u[:, :, j] * ll
         f_face[:, 1, j] .= f[:, :, j] * ll
@@ -48,22 +48,20 @@ function frode_euler!(du::AbstractTensor3, u, p, t)
         f_face[:, 2, j] .= f[:, :, j] * lr
     end
 
-    @inbounds @threads for i = 2:ncell
+    @inbounds @threads for i in 2:ncell
         fw = @view f_interaction[i, :]
         flux_hll!(fw, u_face[i-1, 2, :], u_face[i, 1, :], γ, 1.0)
     end
 
-    @inbounds @threads for k = 1:3
+    @inbounds @threads for k in 1:3
         rhs1[:, :, k] .= f[:, :, k] * lpdm'
     end
 
-    @inbounds @threads for i = 2:ncell-1
-        for ppp1 = 1:nsp, k = 1:3
-            du[i, ppp1, k] = -(
-                rhs1[i, ppp1, k] +
-                (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
-                (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
-            )
+    @inbounds @threads for i in 2:ncell-1
+        for ppp1 in 1:nsp, k in 1:3
+            du[i, ppp1, k] = -(rhs1[i, ppp1, k] +
+              (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
+              (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1])
         end
     end
 
@@ -76,7 +74,7 @@ end
 
 function dirichlet_euler!(du::AbstractTensor3, u, p)
     du[1, :, :] .= 0.0
-    du[end, :, :] .= 0.0
+    return du[end, :, :] .= 0.0
 end
 
 function period_euler!(du::AbstractTensor3, u, p)
@@ -91,12 +89,10 @@ function period_euler!(du::AbstractTensor3, u, p)
     flux_hll!(fw, u_face[ncell, 2, :], u_face[1, 1, :], γ, 1.0)
 
     @inbounds for i in [1, ncell]
-        for ppp1 = 1:nsp, k = 1:3
-            du[i, ppp1, k] = -(
-                rhs1[i, ppp1, k] +
-                (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
-                (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1]
-            )
+        for ppp1 in 1:nsp, k in 1:3
+            du[i, ppp1, k] = -(rhs1[i, ppp1, k] +
+              (f_interaction[i, k] / J[i] - f_face[i, 1, k]) * dgl[ppp1] +
+              (f_interaction[i+1, k] / J[i] - f_face[i, 2, k]) * dgr[ppp1])
         end
     end
 end

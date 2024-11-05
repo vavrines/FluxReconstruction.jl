@@ -5,7 +5,6 @@ Calculate Legendre points of polynomial degree p
 """
 legendre_point(p::Integer) = gausslegendre(p + 1)[1]
 
-
 """
 $(SIGNATURES)
 
@@ -22,7 +21,6 @@ function ∂legendre(p::Integer, x::AV)
     return Δ
 end
 
-
 """
 $(SIGNATURES)
 
@@ -37,7 +35,6 @@ function ∂radau(p::Integer, x::Union{Real,AV})
 
     return dgl, dgr
 end
-
 
 """
 $(SIGNATURES)
@@ -55,7 +52,6 @@ function ∂sd(p::Integer, x::Union{Real,AV})
 
     return dgl, dgr
 end
-
 
 """
 $(SIGNATURES)
