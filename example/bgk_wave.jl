@@ -1,6 +1,5 @@
-using OrdinaryDiffEq
-using KitBase, KitBase.Plots
-import FluxRC
+using OrdinaryDiffEq, Plots, KitBase
+import FluxReconstruction as FR
 using Logging: global_logger
 using TerminalLoggers: TerminalLogger
 global_logger(TerminalLogger())
@@ -22,19 +21,19 @@ begin
 end
 
 begin
-    ps = FluxRC.FRPSpace1D(x0, x1, nx, deg)
+    ps = FR.FRPSpace1D(x0, x1, nx, deg)
     vs = VSpace1D(u0, u1, nu)
     δ = heaviside.(vs.u)
     xFace = collect(x0:dx:x1)
-    xGauss = FluxRC.legendre_point(deg)
-    xsp = FluxRC.global_sp(xFace, xGauss)
-    ll, lr, lpdm = FluxRC.standard_lagrange(xGauss)
-    dgl, dgr = FluxRC.∂radau(deg, xGauss)
+    xGauss = FR.legendre_point(deg)
+    xsp = FR.global_sp(xFace, xGauss)
+    ll, lr, lpdm = FR.standard_lagrange(xGauss)
+    dgl, dgr = FR.∂radau(deg, xGauss)
 end
 
 f0 = zeros(nx, nu, nsp)
 for i in 1:nx, ppp1 in 1:nsp
-    _ρ = 1.0 + 0.1 * sin(2.0 * π * ps.xp[i, ppp1])
+    _ρ = 1.0 + 0.1 * sin(2.0 * π * ps.xpg[i, ppp1])
     _T = 2 * 0.5 / _ρ
 
     f0[i, :, ppp1] .= maxwellian(vs.u, [_ρ, 1.0, 1.0 / _T])
@@ -98,7 +97,7 @@ function mol!(du, u, p, t)
     end=#
 
     @views for i in 1:ncell, j in 1:nu
-        FluxRC.interp_interface!(f_face[i, j, :], f[i, j, :], ll, lr)
+        FR.interp_face!(f_face[i, j, :], f[i, j, :], ll, lr)
     end
 
     f_interaction = similar(u, nface, nu)
@@ -113,7 +112,7 @@ function mol!(du, u, p, t)
     #end
 
     @views for i in 1:ncell, j in 1:nu
-        FluxRC.poly_derivative!(rhs1[i, j, :], f[i, j, :], lpdm)
+        FR.poly_derivative!(rhs1[i, j, :], f[i, j, :], lpdm)
     end
 
     #@views for i = 1:ncell, j = 1:nu, k = 1:nsp
@@ -174,9 +173,9 @@ begin
     end
 end
 
-#FluxRC.L1_error(prim[:, 1], prim0[:, 1], dx) |> println
-#FluxRC.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
-#FluxRC.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
+#FR.L1_error(prim[:, 1], prim0[:, 1], dx) |> println
+#FR.L2_error(prim[:, 1], prim0[:, 1], dx) |> println
+#FR.L∞_error(prim[:, 1], prim0[:, 1], dx) |> println
 
 plot(x, prim0[:, 1]; label="t=0")
 plot!(x[1:end], prim[1:end, 1]; label="t=1")
